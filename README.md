@@ -142,4 +142,5 @@ Hackathon prototype, deployed to Fuji, source-verified on Sourcify. Not audited.
 ## Repo
 
 - GitHub: <https://github.com/wiireed/SafeSpend>
-- Latest open work: branch `claude/fix-metamask-warning-p7Ulw`, [PR #12](https://github.com/wiireed/SafeSpend/pull/12)
+- Live demo: <https://safespend.eth.limo>
+- All work is on `main`. PR history at <https://github.com/wiireed/SafeSpend/pulls?q=is%3Apr>.
