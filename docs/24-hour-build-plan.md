@@ -21,6 +21,9 @@ The original plan is directionally strong, but these fixes should be treated as 
 5. Do not let callers submit a policy `version`. Use a `PolicyInput` struct and assign/increment `version` inside the contract.
 6. Drop `Ownable` unless a concrete owner action is added. This vault should be least-authority by default.
 7. Use `ANTHROPIC_MODEL` in env with a default, instead of scattering one model string across the codebase.
+8. Add a `withdraw` function so users can recover unspent deposits, including after policy expiry. Without it, deposits become trapped whenever the policy lapses.
+9. Apply the `authorizedAgent` check on both `proposePurchase` and `tryProposePurchase`; the observable path emits `unauthorized_agent` instead of reverting. Otherwise anyone can spam a victim's rejection feed.
+10. Enforce CEI ordering: state updates (`spent`, `deposited`) happen before any external token transfer. The vault accepts a user-chosen `policy.token`, so a hostile token cannot be ruled out by construction.
 
 ## Decisions Locked
 
@@ -199,6 +202,7 @@ Functions:
 ```solidity
 function setPolicy(PolicyInput calldata input) external;
 function deposit(address token, uint256 amount) external;
+function withdraw(uint256 amount) external;
 function proposePurchase(address user, address merchant, uint256 amount, bytes32 listingHash) external;
 function tryProposePurchase(address user, address merchant, uint256 amount, bytes32 listingHash) external returns (bool ok, string memory reason);
 function getPolicy(address user) external view returns (Policy memory);
@@ -210,13 +214,13 @@ Strict path:
 
 - `proposePurchase` reverts with custom errors.
 - Requires `msg.sender == policy.authorizedAgent`.
-- Transfers `policy.token` from the vault to the merchant.
-- Increments `spent[user]` only after all checks pass.
+- Updates `spent[user]` and any other relevant state before transferring `policy.token` from the vault to the merchant (CEI). The vault must not assume `policy.token` is non-hostile.
 
 Observable path:
 
 - `tryProposePurchase` uses the same internal validation but emits `PurchaseRejected` instead of reverting for expected policy failures.
-- Reason strings and reason-code preimages are identical, for example `merchant_not_allowed`.
+- Enforces the same `msg.sender == policy.authorizedAgent` check; an unauthorized caller emits `PurchaseRejected` with reason code `unauthorized_agent` rather than reverting, so the symmetry with the strict path is preserved without letting third parties trigger transfers.
+- Reason strings and reason-code preimages are identical, for example `merchant_not_allowed`. Concretely, `reasonCode = keccak256(bytes(reason))`; the indexed `reasonCode` lets the frontend filter rejection events without parsing the string.
 - Expected reason codes: `unauthorized_agent`, `merchant_not_allowed`, `exceeds_per_tx`, `exceeds_total`, `policy_expired`, `token_mismatch`, `no_policy`, `insufficient_deposit`.
 
 Policy semantics:
@@ -227,11 +231,12 @@ Policy semantics:
 - `token` cannot change after the user has deposited or spent funds.
 - `deposit` reverts with `NoPolicy()` if no policy exists.
 - `deposit` requires `token == policy.token`.
-- `remainingAllowance` returns the effective remaining purchase capacity, including both policy limits and unspent deposited funds.
+- `withdraw` lets `msg.sender` pull up to `deposited[msg.sender] - spent[msg.sender]` of `policy.token`, and is allowed even after policy expiry. It reverts with `InsufficientDeposit` if the requested amount exceeds the unspent balance. It reduces `deposited`; `spent` is unchanged.
+- `remainingAllowance` returns `(perTx, total)` where `perTx = policy.maxPerTx` (or 0 when no policy / expired) and `total = min(policy.maxTotal - spent[user], deposited[user] - spent[user])`. The second term is the unspent deposit balance.
 
 Trust boundary:
 
-- `listingHash` is audit metadata only. The agent supplies it, and v1 does not verify it against a signed merchant registry.
+- `listingHash` is audit metadata only. It is computed off-chain as `keccak256(abi.encode(merchant, amount, listingId))` where `listingId` is the stable id from `listings.json`; both the agent and the frontend use the same formula. v1 does not verify it on-chain against a signed merchant registry.
 
 ### Contract Tests
 
@@ -250,8 +255,13 @@ Target tests:
 11. `test_ProposePurchase_ExceedsTotal_OnSecondCall`.
 12. `test_ProposePurchase_MerchantNotAllowed`.
 13. `test_ProposePurchase_InsufficientDeposit`.
-14. `test_TryProposePurchase_EmitsRejectedReason`.
-15. `test_RemainingAllowance_ReflectsSpentAndDeposits`.
+14. `test_TryProposePurchase_HappyPath_EmitsApproved`.
+15. `test_TryProposePurchase_EmitsRejectedReason`.
+16. `test_TryProposePurchase_UnauthorizedAgent_EmitsRejected`.
+17. `test_RemainingAllowance_ReflectsSpentAndDeposits`.
+18. `test_Withdraw_ReturnsUnspentDeposit`.
+19. `test_Withdraw_RevertsIfExceedsUnspent`.
+20. `test_Withdraw_AllowedAfterExpiry`.
 
 ## Agent Loop
 
@@ -268,6 +278,7 @@ Hard guardrails:
 - Validate tool input before chain calls: address format, positive amount, amount fits `uint256`.
 - 60s timeout per model call.
 - 30s timeout per RPC call.
+- No chain-call retries on timeout in v1; failures surface to the user. Avoids accidental double-sends from transient flakes.
 - Max 8 tool-call rounds.
 - Persist every run to a disk log at completion, with in-memory ring buffer while running.
 
@@ -307,6 +318,7 @@ Single-page demo:
 - Balance strip before and after: user/session wallet, vault, good merchant, bad merchant.
 - Event feed watches `PurchaseApproved` and `PurchaseRejected`.
 - Run logs persist in `localStorage` by `runId`.
+- `ANTHROPIC_API_KEY` and the agent private key live server-side only; `/api/run` never exposes them to the browser.
 
 Shared helper:
 
@@ -357,7 +369,7 @@ Same agent, same listings, same prompt. The only variable is whether the wallet 
 | --- | ---: | --- | --- |
 | G1 | 8 | Contracts green on Anvil, deploy works, one local `PurchaseRejected` event mined | Cut to `authorizedAgent`, `maxPerTx`, and one allowlisted merchant |
 | G2 | 14 | CLI vulnerable and safe runs both succeed reproducibly against Anvil | Cut web UI; demo CLI and explorer links |
-| G3 | 18 | Fuji has one `PurchaseApproved` and one `PurchaseRejected` visible in explorer | Demo against Anvil; show Fuji deploy proof |
+| G3 | 18 | Fuji has one `PurchaseApproved` and one `PurchaseRejected` from the same user and policy version, visible in explorer | Demo against Anvil; show Fuji deploy proof |
 | G4 | 22 | Full pitch dry-run completes with no fatal failures | Use recorded video instead of live demo |
 
 ## Critical Files
