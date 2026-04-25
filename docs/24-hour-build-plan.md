@@ -17,13 +17,16 @@ The original plan is directionally strong, but these fixes should be treated as 
 1. Add `authorizedAgent` to the policy. Without this, anyone could call `proposePurchase(user, merchant, amount, listingHash)` and spend a user's deposited balance to an allowlisted merchant.
 2. Do not implement `tryProposePurchase` as a Solidity `try/catch` wrapper around the strict external path. Use shared internal validation that returns a reason code, then have `proposePurchase` revert and `tryProposePurchase` emit observable rejection events.
 3. Add deposit availability checks. Policy limits alone are not enough; the vault must reject purchases above the user's unspent deposited balance.
-4. Make the policy token immutable once the user has deposited or spent funds. Otherwise `spent` and `deposited` become ambiguous across tokens.
+4. Pin the vault to a single immutable `MockUSDC` set at construction. Drop `token` from `PolicyInput`/`Policy` along with `TokenMismatch` and `TokenChangeNotAllowed`; v1 is single-token by design (see Security Caveats), and removing the user-chosen-token surface eliminates the hostile-token reentrancy vector.
 5. Do not let callers submit a policy `version`. Use a `PolicyInput` struct and assign/increment `version` inside the contract.
 6. Drop `Ownable` unless a concrete owner action is added. This vault should be least-authority by default.
 7. Use `ANTHROPIC_MODEL` in env with a default, instead of scattering one model string across the codebase.
 8. Add a `withdraw` function so users can recover unspent deposits, including after policy expiry. Without it, deposits become trapped whenever the policy lapses.
-9. Apply the `authorizedAgent` check on both `proposePurchase` and `tryProposePurchase`; the observable path emits `unauthorized_agent` instead of reverting. Otherwise anyone can spam a victim's rejection feed.
-10. Enforce CEI ordering: state updates (`spent`, `deposited`) happen before any external token transfer. The vault accepts a user-chosen `policy.token`, so a hostile token cannot be ruled out by construction.
+9. Apply the `authorizedAgent` check on both `proposePurchase` and `tryProposePurchase` and revert in both paths for unauthorized callers. Letting the observable path emit a rejection lets anyone pollute a victim's feed; the `unauthorized_agent` reason code stays defined for forwards-compatibility but is unreachable from `tryProposePurchase` in v1.
+10. Enforce CEI ordering: state updates (`spent`, `deposited`) happen before any external token transfer. Use `SafeERC20` for transfers as a habit even though the token is now pinned.
+11. Add `depositFor(address user, uint256 amount)` so `Seed.s.sol` can credit the demo user without holding the user's key. `deposit(uint256)` becomes a one-liner that calls `depositFor(msg.sender, amount)`.
+12. Event topics are limited to 3 indexed fields. Drop `listingHash` from indexed on both events (it is audit-only metadata, not provenance) and use the freed slot for `policyVersion` on `PurchaseApproved` and `reasonCode` on `PurchaseRejected`. Those are the filters the frontend actually needs.
+13. `remainingAllowance.perTx` returns `min(policy.maxPerTx, total)` so the UI never displays a per-tx ceiling larger than what is actually spendable.
 
 ## Decisions Locked
 
@@ -120,16 +123,17 @@ Minimal OpenZeppelin ERC-20:
 
 ### `PolicyVault.sol`
 
-The vault holds MockUSDC for users and only releases funds when the policy allows the purchase.
+The vault holds MockUSDC for users and only releases funds when the policy allows the purchase. The token is pinned at deployment via `constructor(IERC20 _usdc)`; v1 supports exactly one ERC-20.
 
 ```solidity
 uint256 constant MAX_ALLOWLIST = 20;
+
+IERC20 public immutable usdc;
 
 struct Policy {
     uint256 maxPerTx;
     uint256 maxTotal;
     uint256 expiresAt;
-    address token;
     address authorizedAgent;
     uint64 version;
     address[] allowedMerchants;
@@ -139,7 +143,6 @@ struct PolicyInput {
     uint256 maxPerTx;
     uint256 maxTotal;
     uint256 expiresAt;
-    address token;
     address authorizedAgent;
     address[] allowedMerchants;
 }
@@ -157,11 +160,9 @@ error MerchantNotAllowed();
 error ExceedsPerTx();
 error ExceedsTotal();
 error PolicyExpired();
-error TokenMismatch();
 error NoPolicy();
 error AllowlistTooLong();
 error InsufficientDeposit();
-error TokenChangeNotAllowed();
 ```
 
 Events:
@@ -170,29 +171,30 @@ Events:
 event PolicySet(
     address indexed user,
     uint64 indexed version,
-    address token,
     address authorizedAgent,
     uint256 maxPerTx,
     uint256 maxTotal,
     uint256 expiresAt
 );
 
-event Deposited(address indexed user, address indexed token, uint256 amount);
+event Deposited(address indexed user, address indexed payer, uint256 amount);
+
+event Withdrawn(address indexed user, uint256 amount);
 
 event PurchaseApproved(
     address indexed user,
     address indexed merchant,
     uint256 amount,
-    bytes32 indexed listingHash,
-    uint64 policyVersion
+    bytes32 listingHash,
+    uint64 indexed policyVersion
 );
 
 event PurchaseRejected(
     address indexed user,
     address indexed merchant,
     uint256 amount,
-    bytes32 indexed listingHash,
-    bytes32 reasonCode,
+    bytes32 listingHash,
+    bytes32 indexed reasonCode,
     string reason
 );
 ```
@@ -201,7 +203,8 @@ Functions:
 
 ```solidity
 function setPolicy(PolicyInput calldata input) external;
-function deposit(address token, uint256 amount) external;
+function deposit(uint256 amount) external;
+function depositFor(address user, uint256 amount) external;
 function withdraw(uint256 amount) external;
 function proposePurchase(address user, address merchant, uint256 amount, bytes32 listingHash) external;
 function tryProposePurchase(address user, address merchant, uint256 amount, bytes32 listingHash) external returns (bool ok, string memory reason);
@@ -214,25 +217,24 @@ Strict path:
 
 - `proposePurchase` reverts with custom errors.
 - Requires `msg.sender == policy.authorizedAgent`.
-- Updates `spent[user]` and any other relevant state before transferring `policy.token` from the vault to the merchant (CEI). The vault must not assume `policy.token` is non-hostile.
+- Updates `spent[user]` and any other relevant state before transferring `usdc` from the vault to the merchant (CEI). Uses `SafeERC20.safeTransfer` for the outbound call.
 
 Observable path:
 
 - `tryProposePurchase` uses the same internal validation but emits `PurchaseRejected` instead of reverting for expected policy failures.
-- Enforces the same `msg.sender == policy.authorizedAgent` check; an unauthorized caller emits `PurchaseRejected` with reason code `unauthorized_agent` rather than reverting, so the symmetry with the strict path is preserved without letting third parties trigger transfers.
-- Reason strings and reason-code preimages are identical, for example `merchant_not_allowed`. Concretely, `reasonCode = keccak256(bytes(reason))`; the indexed `reasonCode` lets the frontend filter rejection events without parsing the string.
-- Expected reason codes: `unauthorized_agent`, `merchant_not_allowed`, `exceeds_per_tx`, `exceeds_total`, `policy_expired`, `token_mismatch`, `no_policy`, `insufficient_deposit`.
+- Reverts with `UnauthorizedAgent` for unauthorized callers, just like the strict path. The `unauthorized_agent` reason code remains defined for forwards-compatibility but is unreachable via `tryProposePurchase` in v1; this keeps third parties from spamming a victim's rejection feed.
+- Reason strings and reason-code preimages are identical, for example `merchant_not_allowed`. Concretely, `reasonCode = keccak256(bytes(reason))`; the indexed `reasonCode` topic lets the frontend filter rejection events without parsing the string.
+- Expected reason codes: `merchant_not_allowed`, `exceeds_per_tx`, `exceeds_total`, `policy_expired`, `no_policy`, `insufficient_deposit`. (`unauthorized_agent` is reserved but not emitted in v1.)
 
 Policy semantics:
 
 - `setPolicy` replaces limits, expiry, allowlist, and authorized agent.
 - `setPolicy` increments `version`.
 - `setPolicy` does not reset `spent`.
-- `token` cannot change after the user has deposited or spent funds.
-- `deposit` reverts with `NoPolicy()` if no policy exists.
-- `deposit` requires `token == policy.token`.
-- `withdraw` lets `msg.sender` pull up to `deposited[msg.sender] - spent[msg.sender]` of `policy.token`, and is allowed even after policy expiry. It reverts with `InsufficientDeposit` if the requested amount exceeds the unspent balance. It reduces `deposited`; `spent` is unchanged.
-- `remainingAllowance` returns `(perTx, total)` where `perTx = policy.maxPerTx` (or 0 when no policy / expired) and `total = min(policy.maxTotal - spent[user], deposited[user] - spent[user])`. The second term is the unspent deposit balance.
+- `deposit(amount)` calls `depositFor(msg.sender, amount)`; both pull `usdc` from `msg.sender` via `SafeERC20.safeTransferFrom` and credit `deposited[user]`.
+- `depositFor` reverts with `NoPolicy()` if `user` has no policy. The credit goes to `user`, not to `msg.sender`, so `Seed.s.sol` can fund the demo user without the user's key.
+- `withdraw` lets `msg.sender` pull up to `deposited[msg.sender] - spent[msg.sender]` of `usdc`, and is allowed even after policy expiry. It reverts with `InsufficientDeposit` if the requested amount exceeds the unspent balance. It reduces `deposited`; `spent` is unchanged.
+- `remainingAllowance` returns `(perTx, total)` where `total = min(policy.maxTotal - spent[user], deposited[user] - spent[user])` and `perTx = min(policy.maxPerTx, total)`. Both return 0 when no policy is set or the policy has expired. Capping `perTx` by `total` keeps the UI from advertising a per-tx ceiling that cannot actually be spent.
 
 Trust boundary:
 
@@ -245,9 +247,9 @@ Target tests:
 1. `test_SetPolicy_BumpsVersion`.
 2. `test_SetPolicy_FullyReplacesPrior_DoesNotResetSpent`.
 3. `test_SetPolicy_RevertsWhenAllowlistTooLong`.
-4. `test_SetPolicy_RevertsOnTokenChangeAfterDeposit`.
-5. `test_Deposit_RevertsWhenNoPolicy`.
-6. `test_Deposit_RevertsOnTokenMismatch`.
+4. `test_Deposit_RevertsWhenNoPolicy`.
+5. `test_DepositFor_CreditsTargetUser`.
+6. `test_DepositFor_RevertsWhenTargetHasNoPolicy`.
 7. `test_ProposePurchase_HappyPath`.
 8. `test_ProposePurchase_RevertsWhenUnauthorizedAgent`.
 9. `test_ProposePurchase_ExpiredPolicy`.
@@ -257,11 +259,14 @@ Target tests:
 13. `test_ProposePurchase_InsufficientDeposit`.
 14. `test_TryProposePurchase_HappyPath_EmitsApproved`.
 15. `test_TryProposePurchase_EmitsRejectedReason`.
-16. `test_TryProposePurchase_UnauthorizedAgent_EmitsRejected`.
+16. `test_TryProposePurchase_RevertsWhenUnauthorizedAgent`.
 17. `test_RemainingAllowance_ReflectsSpentAndDeposits`.
-18. `test_Withdraw_ReturnsUnspentDeposit`.
-19. `test_Withdraw_RevertsIfExceedsUnspent`.
-20. `test_Withdraw_AllowedAfterExpiry`.
+18. `test_RemainingAllowance_PerTxCappedByTotal`.
+19. `test_Withdraw_ReturnsUnspentDeposit`.
+20. `test_Withdraw_RevertsIfExceedsUnspent`.
+21. `test_Withdraw_AllowedAfterExpiry`.
+22. `test_Events_PurchaseApproved_IndexesPolicyVersion`.
+23. `test_Events_PurchaseRejected_IndexesReasonCode`.
 
 ## Agent Loop
 
@@ -340,7 +345,7 @@ Use the same agent, same listings, same prompt, and same starting budget.
 Pre-seed:
 
 - Vulnerable mode: mint 500 USDC to the agent/session wallet.
-- Safe mode: mint 500 USDC to the user, approve the vault, and deposit 500 USDC.
+- Safe mode: user signs `setPolicy`, then `Seed.s.sol` mints 500 USDC, approves the vault, and calls `depositFor(user, 500e6)` on the user's behalf.
 - Good and bad merchants start at 0.
 
 Pitch line:
