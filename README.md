@@ -17,6 +17,19 @@ shared/      ABIs, addresses, explorer link helper, shared TS types
 
 ## Quickstart
 
+For first-time setup and for handing the project to teammates, see **[docs/run-walkthrough.md](docs/run-walkthrough.md)**. Two paths there: a one-command Docker setup (`docker compose up`) and a manual three-terminal walkthrough.
+
+TL;DR Docker:
+
+```sh
+echo "OPENAI_API_KEY=sk-..." > .env
+docker compose up
+# then point MetaMask at http://127.0.0.1:8545 (chain id 31337)
+# and open http://localhost:3000
+```
+
+Minimal smoke check (no Docker, no UI):
+
 ```sh
 # 1. Install pnpm deps for agent/web/shared
 pnpm install
@@ -41,4 +54,4 @@ For the public-explorer demo on Avalanche Fuji testnet, see [docs/fuji-deploy.md
 
 ## LLM provider
 
-The agent uses a provider-agnostic adapter. Default is OpenAI with `gpt-5.5-codex`. Set `LLM_PROVIDER=anthropic` in `.env` to switch to Claude. See `.env.example`.
+The agent uses a provider-agnostic adapter. Default is OpenAI with `gpt-4o-mini`. Set `LLM_PROVIDER=anthropic` in `.env` to switch to Claude. See `.env.example`.
