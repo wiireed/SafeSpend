@@ -68,7 +68,9 @@ RUN addgroup --system --gid 1001 nodejs \
 # /app/web/.next/standalone (because outputFileTracingRoot is the repo root).
 COPY --from=builder --chown=nextjs:nodejs /app/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/web/.next/static ./web/.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/web/public ./web/public
+# (no web/public dir in this project — Next.js doesn't require one when there
+#  are no static assets. If you add one later, also add:
+#    COPY --from=builder --chown=nextjs:nodejs /app/web/public ./web/public)
 # Listings JSON is read at runtime by the agent's searchListings tool;
 # next's tracer should pull it in but we copy explicitly to be safe.
 COPY --from=builder --chown=nextjs:nodejs /app/agent/src/listings.json ./agent/src/listings.json
