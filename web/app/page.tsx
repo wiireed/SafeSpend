@@ -6,6 +6,7 @@ import { Onboarding } from "@/components/Onboarding";
 import { BalanceStrip } from "@/components/BalanceStrip";
 import { EventFeed } from "@/components/EventFeed";
 import { RunPanel } from "@/components/RunPanel";
+import { NetworkHelper } from "@/components/NetworkHelper";
 
 export default function Page() {
   const { isConnected } = useAccount();
@@ -15,6 +16,8 @@ export default function Page() {
       <TopBar />
 
       <div className="mx-auto max-w-7xl space-y-6 px-6 py-6">
+        <NetworkHelper />
+
         <section>
           <SectionHeader
             title="Onboarding"

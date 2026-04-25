@@ -37,9 +37,11 @@ One command: `docker compose up`. Brings up anvil, runs the deploy + agent-fundi
    ```
    Wait for the Next.js `Ready in N s` line. The anvil + deploy + mint sequence runs first, then the dev server starts. Total time on a warm cache: ~30 seconds.
 4. **MetaMask:**
-   - Add Anvil network: name `Anvil`, RPC `http://127.0.0.1:8545`, chain id `31337`, currency `ETH`.
+   - Easiest: connect your wallet on http://localhost:3000 first; the page shows an **Add / switch to Anvil** button that calls `wallet_addEthereumChain` so you don&rsquo;t have to type the RPC URL yourself.
+   - Manual fallback — Add Anvil network: name `Anvil`, RPC `http://127.0.0.1:8545` (the `http://` prefix is required, otherwise MetaMask shows &ldquo;Could not fetch chain ID&rdquo;), chain id `31337`, currency `ETH`.
    - Import the user account: paste private key `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d` (anvil account #1, address `0x7099…79C8`).
    - **Switch network selector to Anvil.**
+   - Expected (cosmetic) warnings: MetaMask suggests &ldquo;GoChain Testnet&rdquo; / currency `GO` because chain ID 31337 collides with that entry in MetaMask&rsquo;s public chain registry. These are safe to ignore for local Anvil.
 5. Open http://localhost:3000, walk the onboarding (Set policy → Mint → Approve → Deposit), then click Run on each agent panel.
 
 ### What's running
@@ -64,6 +66,9 @@ One command: `docker compose up`. Brings up anvil, runs the deploy + agent-fundi
 | Port 8545 or 3000 already in use | Stop the conflicting process (`lsof -ti:8545 \| xargs kill`) or change the port in `docker-compose.yml` |
 | `pnpm install` errors with arch mismatch | `docker compose down -v` to drop the node_modules volumes, then `up` again |
 | Web shows `policy v0` after page load and click Set policy fails silently | MetaMask is on Ethereum mainnet — switch to Anvil |
+| MetaMask: &ldquo;Could not fetch chain ID. Is your RPC URL correct?&rdquo; | RPC URL is missing the `http://` prefix. Use `http://127.0.0.1:8545`, not `127.0.0.1:8545` and not `localhost:8545`. Or click the **Add / switch to Anvil** button on the page. |
+| MetaMask warns the network name &ldquo;may not match&rdquo; / suggests `GoChain Testnet` / suggests currency `GO` | Cosmetic. Chain ID 31337 collides with GoChain Testnet in MetaMask&rsquo;s registry. Save the network anyway. |
+| MetaMask shows stale balances or transactions get stuck after `docker compose down && up` | The chain was wiped but MetaMask still has the old nonce/activity cache. **MetaMask → Settings → Advanced → Clear activity tab data** for the imported account. |
 | Browser can't reach RPC at all | Make sure Docker Desktop's port mapping is enabled — `curl http://127.0.0.1:8545` should respond |
 
 ---
@@ -207,12 +212,13 @@ Open http://localhost:3000.
 
 ### MetaMask setup
 
-1. **Add the Anvil network manually:**
+1. **Add the Anvil network.** Easiest path: open http://localhost:3000, click Connect, then click the amber **Add / switch to Anvil** banner — the page calls `wallet_addEthereumChain` for you. Manual fallback if you prefer typing it in:
    - Network name: `Anvil`
-   - RPC URL: `http://127.0.0.1:8545`
+   - RPC URL: `http://127.0.0.1:8545` *(the `http://` prefix is required — without it MetaMask shows &ldquo;Could not fetch chain ID&rdquo;)*
    - Chain ID: `31337`
    - Currency: `ETH`
    - Block explorer: leave blank
+   - Expected MetaMask warnings: it suggests &ldquo;GoChain Testnet&rdquo; / currency `GO`. Chain ID 31337 happens to collide with that entry in MetaMask&rsquo;s public chain registry — the warning is cosmetic and safe to ignore for local Anvil.
 2. **Import the user account:** account menu → Import account → paste:
    ```
    0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
@@ -316,6 +322,8 @@ If the safe agent picks Merchant A instead of C, the LLM was too cautious to fal
 | `command not found: forge` | foundryup ran but PATH not reloaded | `source ~/.zshenv && foundryup`, or open a new terminal |
 | `command not found: #` (zsh) | Comments treated as commands | Strip the `# ...` lines, or `setopt interactive_comments` once per shell |
 | MetaMask "Insufficient funds — not enough ETH for network fees", fee shown in real $ | MetaMask is on Ethereum mainnet | Switch the network selector to Anvil |
+| MetaMask: "Could not fetch chain ID. Is your RPC URL correct?" | RPC URL missing `http://` prefix, or anvil not reachable | Use `http://127.0.0.1:8545` (not `127.0.0.1:8545`, not `localhost:8545`). Or use the in-page **Add / switch to Anvil** button. |
+| MetaMask warns the network name "may not match" / suggests "GoChain Testnet" / suggests currency `GO` | Chain ID 31337 collides with GoChain Testnet in MetaMask's chain registry | Cosmetic. Save the network anyway — local Anvil uses ETH, not GO. |
 | MetaMask shows 0 ETH on Anvil even though anvil pre-funds it | Stale nonce cache after anvil restart | MetaMask → Settings → Advanced → Clear activity and nonce data |
 | OpenAI returns `model_not_found` / `does not exist or you do not have access` | `OPENAI_MODEL` is set to a model your account can't reach | Use `gpt-4o-mini` (cheap, broadly available, supports tool calling) |
 | Vulnerable run shows `status: reverted` with "transfer reverted" | Agent wallet has 0 MockUSDC | Run the `cast send` mint to `0x3C44…93BC` |
