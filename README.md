@@ -3,6 +3,8 @@
 **Programmable wallet safety for AI agents.**
 *The agent can be tricked. The wallet cannot.*
 
+[![SafeSpend — programmable wallet safety for AI agents](https://8m3nfbe9w2.ap-southeast-2.awsapprunner.com/opengraph-image)](https://safespend.eth.limo)
+
 > Built at the [Web3NZ Hackathon](https://web3uoa.nz) under the theme **The Great Handover** — the web is shifting from a place for people to a place for AI agents. SafeSpend is the trust layer that lets humans hand AI their wallets, safely.
 
 ---
