@@ -38,7 +38,7 @@ The original plan is directionally strong, but these fixes should be treated as 
 | Contracts framework | Foundry |
 | Wallet/RPC client | viem |
 | Frontend | Next.js App Router, Tailwind, shadcn/ui |
-| Agent | Provider-agnostic LLM adapter, default OpenAI `gpt-5.6-codex`, optional Anthropic fallback; plain TypeScript, no LangChain |
+| Agent | Provider-agnostic LLM adapter, default OpenAI `gpt-5.5-codex`, optional Anthropic fallback; plain TypeScript, no LangChain |
 | Vulnerable mode | Same agent codebase, `safeMode: boolean` |
 | Tracks | Avalanche C-Chain, NewMoney, Binance AI Agent |
 | Account abstraction | Skipped |
@@ -273,7 +273,7 @@ Target tests:
 Agent implementation:
 
 - Provider-agnostic LLM adapter at `agent/src/llm/` exposing a single `Llm.chat({ messages, tools, timeoutMs })` interface. `LLM_PROVIDER` env var (`openai` default, `anthropic` optional) selects the implementation.
-- Default model: OpenAI `gpt-5.6-codex` via the official `openai` SDK; configurable through `OPENAI_MODEL` (and `ANTHROPIC_MODEL` for the fallback path), with hackathon defaults set in `.env.example`.
+- Default model: OpenAI `gpt-5.5-codex` via the official `openai` SDK; configurable through `OPENAI_MODEL` (and `ANTHROPIC_MODEL` for the fallback path), with hackathon defaults set in `.env.example`.
 - Plain TypeScript, no LangChain.
 - Two modes: `--safe` and `--vulnerable`.
 - Same listings, same user prompt, same tool schema in both modes.
@@ -404,7 +404,7 @@ AUTHORIZED_AGENT_ADDRESS=
 
 LLM_PROVIDER=openai
 OPENAI_API_KEY=
-OPENAI_MODEL=gpt-5.6-codex
+OPENAI_MODEL=gpt-5.5-codex
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=claude-sonnet-4-6
 

@@ -37,4 +37,4 @@ pnpm typecheck
 
 ## LLM provider
 
-The agent uses a provider-agnostic adapter. Default is OpenAI with `gpt-5.6-codex`. Set `LLM_PROVIDER=anthropic` in `.env` to switch to Claude. See `.env.example`.
+The agent uses a provider-agnostic adapter. Default is OpenAI with `gpt-5.5-codex`. Set `LLM_PROVIDER=anthropic` in `.env` to switch to Claude. See `.env.example`.
