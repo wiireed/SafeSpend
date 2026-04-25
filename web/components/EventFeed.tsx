@@ -104,8 +104,8 @@ export function EventFeed() {
           key={`${e.txHash}-${i}`}
           className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${
             e.kind === "approved"
-              ? "border-emerald-700/40 bg-emerald-950/30"
-              : "border-rose-700/40 bg-rose-950/30"
+              ? "border-emerald-700/40 bg-emerald-950/30 flash-in-emerald"
+              : "border-rose-700/40 bg-rose-950/30 flash-in-rose"
           }`}
         >
           <div className="flex items-center gap-2">
