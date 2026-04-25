@@ -20,7 +20,7 @@ The original plan is directionally strong, but these fixes should be treated as 
 4. Pin the vault to a single immutable `MockUSDC` set at construction. Drop `token` from `PolicyInput`/`Policy` along with `TokenMismatch` and `TokenChangeNotAllowed`; v1 is single-token by design (see Security Caveats), and removing the user-chosen-token surface eliminates the hostile-token reentrancy vector.
 5. Do not let callers submit a policy `version`. Use a `PolicyInput` struct and assign/increment `version` inside the contract.
 6. Drop `Ownable` unless a concrete owner action is added. This vault should be least-authority by default.
-7. Use `ANTHROPIC_MODEL` in env with a default, instead of scattering one model string across the codebase.
+7. Use a single `OPENAI_MODEL` (or `ANTHROPIC_MODEL` when `LLM_PROVIDER=anthropic`) env var with a default in `.env.example`, instead of scattering one model string across the codebase.
 8. Add a `withdraw` function so users can recover unspent deposits, including after policy expiry. Without it, deposits become trapped whenever the policy lapses.
 9. Apply the `authorizedAgent` check on both `proposePurchase` and `tryProposePurchase` and revert in both paths for unauthorized callers. Letting the observable path emit a rejection lets anyone pollute a victim's feed; the `unauthorized_agent` reason code stays defined for forwards-compatibility but is unreachable from `tryProposePurchase` in v1.
 10. Enforce CEI ordering: state updates (`spent`, `deposited`) happen before any external token transfer. Use `SafeERC20` for transfers as a habit even though the token is now pinned.
@@ -38,7 +38,7 @@ The original plan is directionally strong, but these fixes should be treated as 
 | Contracts framework | Foundry |
 | Wallet/RPC client | viem |
 | Frontend | Next.js App Router, Tailwind, shadcn/ui |
-| Agent | Anthropic SDK, plain TypeScript, no LangChain |
+| Agent | Provider-agnostic LLM adapter, default OpenAI `gpt-5.6-codex`, optional Anthropic fallback; plain TypeScript, no LangChain |
 | Vulnerable mode | Same agent codebase, `safeMode: boolean` |
 | Tracks | Avalanche C-Chain, NewMoney, Binance AI Agent |
 | Account abstraction | Skipped |
@@ -272,8 +272,8 @@ Target tests:
 
 Agent implementation:
 
-- Anthropic SDK.
-- `ANTHROPIC_MODEL` env var, with the hackathon default set in `.env.example`.
+- Provider-agnostic LLM adapter at `agent/src/llm/` exposing a single `Llm.chat({ messages, tools, timeoutMs })` interface. `LLM_PROVIDER` env var (`openai` default, `anthropic` optional) selects the implementation.
+- Default model: OpenAI `gpt-5.6-codex` via the official `openai` SDK; configurable through `OPENAI_MODEL` (and `ANTHROPIC_MODEL` for the fallback path), with hackathon defaults set in `.env.example`.
 - Plain TypeScript, no LangChain.
 - Two modes: `--safe` and `--vulnerable`.
 - Same listings, same user prompt, same tool schema in both modes.
@@ -323,7 +323,7 @@ Single-page demo:
 - Balance strip before and after: user/session wallet, vault, good merchant, bad merchant.
 - Event feed watches `PurchaseApproved` and `PurchaseRejected`.
 - Run logs persist in `localStorage` by `runId`.
-- `ANTHROPIC_API_KEY` and the agent private key live server-side only; `/api/run` never exposes them to the browser.
+- LLM API keys (`OPENAI_API_KEY`, optionally `ANTHROPIC_API_KEY`) and the agent private key live server-side only; `/api/run` never exposes them to the browser.
 
 Shared helper:
 
@@ -401,8 +401,13 @@ RPC_URL=http://127.0.0.1:8545
 PRIVATE_KEY=
 USER_ADDRESS=
 AUTHORIZED_AGENT_ADDRESS=
+
+LLM_PROVIDER=openai
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-5.6-codex
 ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=
+ANTHROPIC_MODEL=claude-sonnet-4-6
+
 VAULT_ADDRESS=
 USDC_ADDRESS=
 ```
@@ -438,7 +443,7 @@ Expected outcomes:
 | --- | --- |
 | Prompt injection does not land on the selected model | Test early; escalate listing injection; keep the system prompt intentionally bypassable for demo purposes |
 | Fuji deploy or RPC flakes | Anvil backup, recorded video, explorer screenshots |
-| Agent loop hangs or rate-limits | Timeouts, max iteration cap, backup recording |
+| Agent loop hangs or rate-limits | Timeouts, max iteration cap, backup recording; flip `LLM_PROVIDER=anthropic` if OpenAI Codex misbehaves on tool calls |
 | Scope creep | Account abstraction, registry, multi-chain, and production auth are explicitly out of scope |
 | Team divergence | This skeleton defines package boundaries and shared interfaces |
 
@@ -460,6 +465,10 @@ The web is becoming agentic. Every product page and review is now an attack surf
 We tried solving it the obvious way, by detecting injections, and realized that is a losing game.
 
 SafeSpend reduces the blast radius instead: the agent can be tricked, but the wallet cannot. Users submit a spending policy on Avalanche; the agent operates inside that boundary; malicious merchants get rejected on-chain.
+
+We do not evaluate prompts. We evaluate proposed actions. We do not ask Stripe or Outlook or any third party to adopt a new verification protocol. We make the money-moving component itself policy-aware.
+
+Natural-language enterprise policy belongs in IdPs and policy engines. SafeSpend covers the class of decisions where the actuator and the verifier collapse into the same object: money. The wallet is not an audit log after the fact; it is the enforcement point before funds move.
 
 We did not make agents smarter. We made the money layer refuse to be lied to. That is what the Great Handover actually needs.
 ```
