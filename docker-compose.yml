@@ -62,11 +62,15 @@ services:
       - ./:/app
       ### Anonymous volumes for node_modules paths so host's modules
       ### (potentially built for a different arch) don't leak into the
-      ### container's installation.
+      ### container's installation. The pnpm store lives on the same
+      ### overlay2 filesystem so hard-links from store -> node_modules
+      ### succeed; otherwise pnpm puts the store inside the bind mount
+      ### and hits cross-filesystem copy races on macOS.
       - root_node_modules:/app/node_modules
       - web_node_modules:/app/web/node_modules
       - agent_node_modules:/app/agent/node_modules
       - shared_node_modules:/app/shared/node_modules
+      - pnpm_store:/app/.pnpm-store
     ports:
       - "3000:3000"
     environment:
@@ -97,3 +101,4 @@ volumes:
   web_node_modules:
   agent_node_modules:
   shared_node_modules:
+  pnpm_store:
