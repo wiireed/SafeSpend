@@ -15,11 +15,10 @@ import { useEffect, useState } from "react";
 import {
   createPublicClient,
   http,
-  parseAbiItem,
   type Hex,
 } from "viem";
 import { avalancheFuji } from "viem/chains";
-import { ADDRESSES, REASON_CODE_LABELS } from "@/lib/contracts";
+import { ADDRESSES, REASON_CODE_LABELS, policyVaultAbi } from "@/lib/contracts";
 import { MERCHANT_ENS } from "@/lib/merchants";
 import { formatUsdc, shortAddress } from "@/lib/format";
 
@@ -38,13 +37,6 @@ const fujiClient = createPublicClient({
   transport: http(PUBLIC_FUJI_RPC),
 });
 
-const APPROVED_EVENT = parseAbiItem(
-  "event PurchaseApproved(address indexed user, address indexed merchant, uint256 amount, uint256 policyVersion)",
-);
-const REJECTED_EVENT = parseAbiItem(
-  "event PurchaseRejected(address indexed user, address indexed merchant, uint256 amount, string reason, uint256 policyVersion)",
-);
-
 type ActivityEntry = {
   txHash: Hex;
   blockNumber: bigint;
@@ -53,7 +45,7 @@ type ActivityEntry = {
   user: Hex;
   merchant: Hex;
   amount: bigint;
-  policyVersion: bigint;
+  policyVersion?: bigint; // approved only - rejected events don't carry it
   reason?: string;
 };
 
@@ -77,16 +69,23 @@ export default function ActivityPage() {
       const HISTORY_BLOCKS = 2000n;
       const fromBlock = head > HISTORY_BLOCKS ? head - HISTORY_BLOCKS : 0n;
 
+      // Use getContractEvents so the ABI is the source of truth for the
+      // event signatures - hand-typing parseAbiItem strings is brittle
+      // (an earlier version of this page silently returned zero results
+      // because the typed signature didn't match the contract's
+      // 'bytes32 listingHash' parameter, so the topic hash was wrong).
       const [approvedLogs, rejectedLogs] = await Promise.all([
-        fujiClient.getLogs({
+        fujiClient.getContractEvents({
           address: FUJI_VAULT,
-          event: APPROVED_EVENT,
+          abi: policyVaultAbi,
+          eventName: "PurchaseApproved",
           fromBlock,
           toBlock: head,
         }),
-        fujiClient.getLogs({
+        fujiClient.getContractEvents({
           address: FUJI_VAULT,
-          event: REJECTED_EVENT,
+          abi: policyVaultAbi,
+          eventName: "PurchaseRejected",
           fromBlock,
           toBlock: head,
         }),
@@ -113,6 +112,8 @@ export default function ActivityPage() {
         .filter((l) => l.blockNumber !== null && l.transactionHash !== null)
         .map((l) => {
           const args = l.args as Record<string, unknown>;
+          // PurchaseApproved fields: user, merchant, amount, listingHash, policyVersion (uint64)
+          // PurchaseRejected fields: user, merchant, amount, listingHash, reasonCode, reason (string)
           return {
             txHash: l.transactionHash as Hex,
             blockNumber: l.blockNumber as bigint,
@@ -121,7 +122,8 @@ export default function ActivityPage() {
             user: args.user as Hex,
             merchant: args.merchant as Hex,
             amount: args.amount as bigint,
-            policyVersion: (args.policyVersion as bigint) ?? 0n,
+            policyVersion:
+              l.kind === "approved" ? (args.policyVersion as bigint) : undefined,
             reason: l.kind === "rejected" ? (args.reason as string) : undefined,
           };
         })
@@ -295,7 +297,9 @@ function ActivityRow({
           <span>
             from <span className="font-mono">{shortAddress(entry.user)}</span>
           </span>
-          <span>policy v{entry.policyVersion.toString()}</span>
+          {entry.policyVersion !== undefined && (
+            <span>policy v{entry.policyVersion.toString()}</span>
+          )}
           <span>{ago}</span>
         </div>
       </div>
