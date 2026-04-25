@@ -60,10 +60,18 @@ export default function Page() {
         </section>
 
         <section>
-          <SectionHeader
-            title="On-chain event feed"
-            blurb="PurchaseApproved and PurchaseRejected from PolicyVault. Vulnerable runs don't appear here — they bypass the vault entirely."
-          />
+          <div className="mb-2 flex items-end justify-between gap-2">
+            <SectionHeader
+              title="On-chain event feed"
+              blurb="PurchaseApproved and PurchaseRejected from PolicyVault. Vulnerable runs don't appear here — they bypass the vault entirely."
+            />
+            <a
+              href="/activity"
+              className="shrink-0 whitespace-nowrap text-sm text-emerald-400 hover:text-emerald-300"
+            >
+              View all activity →
+            </a>
+          </div>
           <EventFeed />
         </section>
 
@@ -71,7 +79,7 @@ export default function Page() {
 
         <footer className="pt-6 text-center text-xs text-neutral-600">
           <div>SafeSpend · the agent can be tricked · the wallet cannot.</div>
-          <div className="mt-2 space-x-3">
+          <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1">
             <a
               href="https://safespend.eth.limo"
               className="hover:text-neutral-400"
@@ -79,11 +87,12 @@ export default function Page() {
               safespend.eth
             </a>
             <span className="text-neutral-700">·</span>
-            <a
-              href="/merchant"
-              className="hover:text-neutral-400"
-            >
+            <a href="/merchant" className="hover:text-neutral-400">
               for merchants
+            </a>
+            <span className="text-neutral-700">·</span>
+            <a href="/activity" className="hover:text-neutral-400">
+              activity
             </a>
             <span className="text-neutral-700">·</span>
             <a
@@ -108,7 +117,7 @@ export default function Page() {
 
 function SectionHeader({ title, blurb }: { title: string; blurb: string }) {
   return (
-    <div className="mb-2">
+    <div className="mb-2 flex-1">
       <h2 className="text-lg font-semibold">{title}</h2>
       <p className="text-sm text-neutral-400">{blurb}</p>
     </div>
