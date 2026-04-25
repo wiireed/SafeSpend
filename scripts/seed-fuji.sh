@@ -24,7 +24,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 FUJI_RPC_URL="${FUJI_RPC_URL:-https://api.avax-test.network/ext/bc/C/rpc}"
 AGENT_BUDGET="${AGENT_BUDGET:-500000000}"  # 500 USDC, 6 decimals
-AGENT_AVAX="${AGENT_AVAX:-0.5ether}"
+AGENT_AVAX="${AGENT_AVAX:-0.3ether}"  # leaves headroom in deployer; faucet only drops 2 AVAX
 
 # Pull the deployed USDC address from shared/src/addresses.ts so we don't
 # have to re-pass it.
