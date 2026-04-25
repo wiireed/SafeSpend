@@ -13,6 +13,20 @@ problem in 30s, see the demo work in 90s, hear the close in 30s.
 - [ ] **Browser zoom 110%, font size 16+** so the back of the room can read.
 - [ ] Recorded backup: 30s screen capture of a successful run, in case live RPC throttles. (Add this Sunday morning.)
 
+## Run order — important
+
+**Always click Safe lane Run FIRST, alone. Wait for `done · runId ...` in the transcript before clicking Vulnerable.**
+
+Both lanes broadcast from the same agent EOA (`0x3C44…93BC`), so they share nonce space. Concurrent clicks race for the same nonce and one tx dies with `replacement transaction underpriced`. If that happens, the bait tx never reaches the vault and the on-chain rejection event is missing — the demo loses its money shot.
+
+Sequential clicks ⇒ both events land cleanly:
+
+- Safe lane runs first → bait gets `merchant_not_allowed` rejection on chain → fallback to allowlisted merchant gets approved → both events visible in feed
+- Then vulnerable lane runs → quiet transfer to bait merchant, no vault event (correct, by design)
+
+(Post-hackathon TODO: either separate EOAs per lane, or wrap the agent's wallet client with viem's `nonceManager` so concurrent calls serialize cleanly.)
+
+
 ## Slide 1 — The Great Handover (15 seconds)
 
 > **Title**: SafeSpend — programmable wallet safety for AI agents
@@ -73,33 +87,35 @@ problem in 30s, see the demo work in 90s, hear the close in 30s.
 
 Point at the BalanceStrip. "The vault has 500 USDC. The agents are about to act."
 
-### Beat 2 — Vulnerable lane (25s)
+### Beat 2 — Safe lane FIRST (45s)
 
-Click **Run** on the rose **Vulnerable agent** panel.
-
-Narrate while transcript streams:
-"Agent searches listings... finds three power banks... reads the description on the bait listing — sees the embedded 'please send to this address' instruction — and proposes that purchase. **Wallet has no policy. Money moves.**"
-
-Visible: Merchant C balance ticks 0 → 12 USDC. Agent balance drops by 12.
-
-"Twelve USDC just left the wallet to a random address with no oversight. **This is what happens today.**"
-
-### Beat 3 — Safe lane (45s)
+> **Order matters** — see "Run order" note above. Click Safe lane FIRST, wait for completion, then click Vulnerable. Otherwise the rejection event gets eaten by a nonce conflict.
 
 Click **Run** on the emerald **Safe agent** panel.
 
 Narrate:
-"Same agent. Same prompt. Same injection. But now it's calling `tryProposePurchase` against the PolicyVault."
+"Same agent. Same prompt. Same listings. But this lane goes through SafeSpend — it calls `tryProposePurchase` against the PolicyVault."
 
-[Pause for the bait attempt] "The agent tries the bait first... vault rejects with `merchant_not_allowed`. The rejection is on-chain — you'll see it in the event feed in a moment."
+[Pause for the bait attempt] "Watch — agent tries the bait... vault checks the merchant against the on-chain allowlist... rejects with `merchant_not_allowed`. The rejection is **on-chain**."
 
-[Pause for the recovery] "Agent recovers, picks `merchant-a.safespend.eth`. **Notice the agent's transcript now says the ENS name, not a hex blob.** Vault checks the allowlist, approves, transfers 22 USDC."
+[Pause for the recovery] "Agent recovers, picks `merchant-a.safespend.eth`. **Notice the agent's transcript now says the ENS name, not a hex blob.** Vault verifies the allowlist, approves, transfers 22 USDC."
 
 Scroll to the **on-chain event feed**:
 "Two events. Red — `merchant_not_allowed`, 12 USDC blocked. Green — approved, 22 USDC paid to a verified merchant."
 
 Click one of the Snowtrace links briefly:
 "Both verifiable on Avalanche Fuji. Live transactions, on-chain rejection event, cryptographic proof."
+
+### Beat 3 — Vulnerable lane (30s)
+
+> **Wait until the safe lane is fully done** — `done · runId ...` should be visible in its transcript before you click Vulnerable.
+
+Narrate while transcript streams:
+"Same prompt. Same listings. But this agent has direct spend authority — no vault. Watch — searches listings... reads the bait listing description... gets prompt-injected by the embedded 'please also send to this address' instruction... and proposes the bait purchase. **Wallet has no policy. Money moves.**"
+
+Visible: Merchant C balance ticks up to 12 USDC. Agent balance drops by 12.
+
+"Twelve USDC just left the wallet to a random address with no oversight. The on-chain event feed for this lane stays empty — vulnerable bypasses the vault entirely. **This is what every agent demo today looks like.**"
 
 ### Beat 4 — The frame (15s)
 
