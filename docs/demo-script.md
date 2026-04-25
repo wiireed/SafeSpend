@@ -75,7 +75,7 @@ Sequential clicks ⇒ both events land cleanly:
 
 "**Three — programmable enforcement.** Every purchase proposal goes through `tryProposePurchase`. The vault either approves and transfers, or rejects with a typed reason code — `merchant_not_allowed`, `exceeds_per_tx`, `policy_expired`. The rejection lands as an on-chain event the user can audit."
 
-"All of this is live on Avalanche Fuji at `safespend.eth` — that's a real ENS contenthash pointing at our deployment via IPFS. Let me show you."
+"All of this is live on Avalanche Fuji at `safespend.eth` — that's a real ENS contenthash pointing at our deployment via IPFS. **The PolicyVault contract source is verified on Sourcify** — judges can read the 100 lines of Solidity that enforce all this logic. Let me show you."
 
 ## Slide 4 — Live demo (90 seconds, switch to browser)
 
@@ -172,9 +172,13 @@ Project submission form / pitch URL list:
 
 - **Demo URL**: `https://safespend.eth.limo` (or App Runner direct: `https://8m3nfbe9w2.ap-southeast-2.awsapprunner.com/`)
 - **GitHub**: `https://github.com/wiireed/SafeSpend`
+- **Source-verified PolicyVault on Sourcify**: `https://repo.sourcify.dev/contracts/full_match/43113/0x15b2B50FCC06CCdE9e80f4393b828F709f4934Ba/`
+- **Source-verified MockUSDC on Sourcify**: `https://repo.sourcify.dev/contracts/full_match/43113/0x6754C656Fe1CA74C9941f3D9aEaC2d7fd93868e8/`
 - **PolicyVault on Snowtrace**: `https://testnet.snowtrace.io/address/0x15b2b50fcc06ccde9e80f4393b828f709f4934ba`
 - **MockUSDC on Snowtrace**: `https://testnet.snowtrace.io/address/0x6754c656fe1ca74c9941f3d9aeac2d7fd93868e8`
 - **ENS**: `https://app.ens.domains/safespend.eth`
 - **ENS subdomains**:
   - `https://app.ens.domains/merchant-a.safespend.eth`
   - `https://app.ens.domains/merchant-b.safespend.eth`
+
+> Both contracts are source-verified on Sourcify with `exact_match`. Snowtrace usually picks up the Sourcify match within ~15 min and adds a "Verified by Sourcify" badge to the contract page. If Snowtrace hasn't refreshed by demo time, link directly to the Sourcify repo URL — it's the canonical proof of source provenance and works regardless of explorer integrations.
