@@ -6,9 +6,11 @@ This folder is the long-form explanation of how SafeSpend's on-chain layer works
 - **Teammates** — onboarding, code review, demo prep, and thinking about how to extend the design without weakening it.
 - **Outside readers** — judges, security reviewers, prospective contributors, integrators who want to know what they would be trusting.
 
-If you only have a minute, read the [pitch in the top-level README](../../README.md) and [`overview.md`](./overview.md) below. If you have ten minutes, read all three docs in this folder in order.
+If you only have a minute, read the [pitch in the top-level README](../../README.md) and [`overview.md`](./overview.md) below. If you have ten minutes, read the three "read first" docs in order. If you have an hour, read everything.
 
-## The five docs
+## The eight docs
+
+**Read first**
 
 1. **[overview.md](./overview.md)** — *What lives where, and why.*
    The two-contract architecture, the on-chain / off-chain split, the data model, the lifecycle of a single purchase, and the assumptions every other doc in this folder builds on.
@@ -19,10 +21,23 @@ If you only have a minute, read the [pitch in the top-level README](../../README
 3. **[onboarding.md](./onboarding.md)** — *The 1 / 2 / 3 / 4 flow, end to end.*
    The four-step user checklist (set policy → mint → approve → deposit), what each step does on chain, why the order is load-bearing, and what the seed script does instead on Fuji.
 
+**Operational + threat model**
+
 4. **[guardrails.md](./guardrails.md)** — *The rejection matrix and the threat model.*
    Every reason a purchase can be rejected, with the exact line of Solidity that enforces it. What attacks we defend against, what attacks are explicitly out of scope, and where the trust boundary sits.
 
-5. **[glossary.md](./glossary.md)** — *Words used in this codebase, defined.*
+5. **[sequence-diagram.md](./sequence-diagram.md)** — *The two-lane demo, step by step.*
+   ASCII swimlanes showing the safe and vulnerable lanes side by side: same prompt-injected listing, opposite outcomes. Where each layer of defence sits.
+
+6. **[new-chain-deploy.md](./new-chain-deploy.md)** — *Deploying SafeSpend to a new EVM chain.*
+   Step-by-step for Sepolia, Base Sepolia, or any other EVM chain — decisions, deploy commands, the four wiring files that need editing, and source-verification notes.
+
+**Reference**
+
+7. **[adr-0001-v1-design.md](./adr-0001-v1-design.md)** — *Architecture Decision Record.*
+   Ten load-bearing decisions (single-token, one-agent, no-admin, CEI, etc.) with the alternatives we considered and the trade-offs we chose.
+
+8. **[glossary.md](./glossary.md)** — *Words used in this codebase, defined.*
    Depositor, agent, merchant, listing hash, policy version, allowlist, reason code — concise definitions so the rest of the docs read smoothly even if you haven't touched Solidity in a while.
 
 ## Source files referenced throughout
