@@ -80,6 +80,13 @@ export default function Page() {
             </a>
             <span className="text-neutral-700">·</span>
             <a
+              href="/merchant"
+              className="hover:text-neutral-400"
+            >
+              for merchants
+            </a>
+            <span className="text-neutral-700">·</span>
+            <a
               href="https://github.com/wiireed/SafeSpend"
               className="hover:text-neutral-400"
             >
