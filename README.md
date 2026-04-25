@@ -17,9 +17,18 @@ shared/      ABIs, addresses, explorer link helper, shared TS types
 
 ## Quickstart
 
-For a full end-to-end walkthrough (anvil + MetaMask + onboarding + both agents) see **[docs/run-walkthrough.md](docs/run-walkthrough.md)**. Recommended for first-time setup and for handing the project to teammates.
+For first-time setup and for handing the project to teammates, see **[docs/run-walkthrough.md](docs/run-walkthrough.md)**. Two paths there: a one-command Docker setup (`docker compose up`) and a manual three-terminal walkthrough.
 
-Minimal smoke check:
+TL;DR Docker:
+
+```sh
+echo "OPENAI_API_KEY=sk-..." > .env
+docker compose up
+# then point MetaMask at http://127.0.0.1:8545 (chain id 31337)
+# and open http://localhost:3000
+```
+
+Minimal smoke check (no Docker, no UI):
 
 ```sh
 # 1. Install pnpm deps for agent/web/shared

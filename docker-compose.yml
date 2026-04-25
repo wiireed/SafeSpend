@@ -1,0 +1,99 @@
+### One-shot local demo: anvil + auto-deploy + auto-mint + Next.js dev server.
+###
+### Usage:
+###   1. Put your OpenAI key in `.env` at the repo root:
+###        OPENAI_API_KEY=sk-...
+###   2. docker compose up
+###   3. Open http://localhost:3000, point MetaMask at http://127.0.0.1:8545
+###      (chain id 31337), import the user account from
+###      shared/src/addresses.ts:ANVIL_PRIVATE_KEYS.user, walk the onboarding,
+###      click Run on either agent panel.
+###
+### MetaMask still connects to 127.0.0.1:8545 (the host port mapping).
+### The Next.js server inside the container reaches the chain at
+### http://anvil:8545 via Docker's internal network.
+
+services:
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    entrypoint: ["anvil"]
+    command: ["--host", "0.0.0.0", "--chain-id", "31337"]
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD-SHELL", "cast block-number --rpc-url http://localhost:8545 || exit 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 3s
+
+  ### One-shot. Initialises Foundry submodules, deploys MockUSDC + PolicyVault
+  ### at their pinned anvil addresses, and mints 500 MockUSDC to the agent
+  ### wallet so the vulnerable lane can demo a transfer.
+  deploy:
+    image: ghcr.io/foundry-rs/foundry:latest
+    user: root
+    working_dir: /app
+    volumes:
+      - ./:/app
+    depends_on:
+      anvil:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        git config --global --add safe.directory '*'
+        git submodule update --init --recursive
+        forge script contracts/script/Deploy.s.sol --root contracts \
+          --rpc-url http://anvil:8545 \
+          --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+          --broadcast
+        cast send 0x5FbDB2315678afecb367f032d93F642f64180aa3 \
+          "mint(address,uint256)" \
+          0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC 500000000 \
+          --rpc-url http://anvil:8545 \
+          --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+  web:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./:/app
+      ### Anonymous volumes for node_modules paths so host's modules
+      ### (potentially built for a different arch) don't leak into the
+      ### container's installation.
+      - root_node_modules:/app/node_modules
+      - web_node_modules:/app/web/node_modules
+      - agent_node_modules:/app/agent/node_modules
+      - shared_node_modules:/app/shared/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      CHAIN_ID: "31337"
+      RPC_URL: "http://anvil:8545"
+      PRIVATE_KEY: "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+      USER_ADDRESS: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      AUTHORIZED_AGENT_ADDRESS: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      VAULT_ADDRESS: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      USDC_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+      LLM_PROVIDER: "openai"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in .env or shell before docker compose up}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+    depends_on:
+      deploy:
+        condition: service_completed_successfully
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        corepack enable
+        pnpm install --frozen-lockfile
+        pnpm -F @safespend/web exec next dev -H 0.0.0.0
+
+volumes:
+  root_node_modules:
+  web_node_modules:
+  agent_node_modules:
+  shared_node_modules:

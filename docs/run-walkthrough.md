@@ -1,6 +1,76 @@
 # Running SafeSpend locally
 
-Self-contained walkthrough from a fresh clone to a live demo. ~10 minutes if nothing goes wrong, ~20 if you hit one of the macOS or MetaMask gotchas (all documented at the bottom).
+Two paths:
+
+- **[Docker quickstart](#docker-quickstart)** — one command, no local Foundry/Node setup. Recommended for teammates who just want to see it run.
+- **[Manual three-terminal walkthrough](#manual-walkthrough)** — explicit Tier 1/2/3 with full control. Use this if you need to iterate on contracts or want to run the unit tests.
+
+Both paths produce the same demo. MetaMask setup is the same for both.
+
+---
+
+## Docker quickstart
+
+One command: `docker compose up`. Brings up anvil, runs the deploy + agent-funding scripts, and starts the Next.js dev server. ~3 minutes on first run (image pulls + `pnpm install`), ~30s after that.
+
+### Prereqs
+
+- **Docker Desktop** running (or any Docker engine + Compose v2)
+- **MetaMask** browser extension
+- **OpenAI API key** with a hard usage cap set ([Settings → Limits](https://platform.openai.com/settings/organization/limits) → $5)
+
+### Steps
+
+1. Clone and enter the repo:
+   ```sh
+   git clone https://github.com/wiireed/SafeSpend.git
+   cd SafeSpend
+   ```
+2. Create a `.env` file at the repo root with your key:
+   ```sh
+   echo "OPENAI_API_KEY=sk-..." > .env
+   ```
+   (`.env` is gitignored. `OPENAI_MODEL` defaults to `gpt-4o-mini`; override in the same file if needed.)
+3. Bring everything up:
+   ```sh
+   docker compose up
+   ```
+   Wait for the Next.js `Ready in N s` line. The anvil + deploy + mint sequence runs first, then the dev server starts. Total time on a warm cache: ~30 seconds.
+4. **MetaMask:**
+   - Add Anvil network: name `Anvil`, RPC `http://127.0.0.1:8545`, chain id `31337`, currency `ETH`.
+   - Import the user account: paste private key `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d` (anvil account #1, address `0x7099…79C8`).
+   - **Switch network selector to Anvil.**
+5. Open http://localhost:3000, walk the onboarding (Set policy → Mint → Approve → Deposit), then click Run on each agent panel.
+
+### What's running
+
+| Service | Port | Role |
+|---|---|---|
+| `anvil` | 8545 | Local Ethereum chain (chain id 31337) |
+| `deploy` | — | One-shot. Inits Foundry submodules, deploys MockUSDC + PolicyVault at pinned addresses, mints 500 USDC to the agent wallet. Exits cleanly. |
+| `web` | 3000 | Next.js dev server. Server-side talks to `http://anvil:8545` (Docker network). Browser-side and MetaMask use `http://127.0.0.1:8545` (host port mapping). |
+
+### Stopping and restarting
+
+- `Ctrl+C` in the terminal running `docker compose up` stops everything.
+- `docker compose down` removes containers and the anvil chain state. Next `up` re-deploys cleanly. **Use this when you want a fresh demo.**
+- `docker compose down -v` also removes the `node_modules` volumes — only needed if you're rebuilding deps from scratch.
+
+### Docker troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `required variable OPENAI_API_KEY is missing` | Create `.env` at the repo root with `OPENAI_API_KEY=sk-...` |
+| Port 8545 or 3000 already in use | Stop the conflicting process (`lsof -ti:8545 \| xargs kill`) or change the port in `docker-compose.yml` |
+| `pnpm install` errors with arch mismatch | `docker compose down -v` to drop the node_modules volumes, then `up` again |
+| Web shows `policy v0` after page load and click Set policy fails silently | MetaMask is on Ethereum mainnet — switch to Anvil |
+| Browser can't reach RPC at all | Make sure Docker Desktop's port mapping is enabled — `curl http://127.0.0.1:8545` should respond |
+
+---
+
+## Manual walkthrough
+
+Use this if you want to run the unit tests, iterate on contracts without rebuilding a container, or just prefer explicit control.
 
 Three tiers. Each tier is a stopping point — they build on each other but each one stands alone as a demo.
 
