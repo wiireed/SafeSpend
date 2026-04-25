@@ -12,6 +12,8 @@
     "contracts:build": "forge build --root contracts",
     "contracts:test": "forge test --root contracts -vvv",
     "abis:export": "forge build --root contracts && bash scripts/export-abis.sh",
-    "anvil": "anvil"
+    "anvil": "anvil",
+    "fuji:deploy": "bash scripts/deploy-fuji.sh",
+    "fuji:seed": "bash scripts/seed-fuji.sh"
   }
 }
