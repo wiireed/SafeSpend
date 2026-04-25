@@ -2,6 +2,7 @@
 
 import { useChainId, useReadContracts } from "wagmi";
 import { mockUsdcAbi, ADDRESSES, ANVIL_ACCOUNTS } from "@/lib/contracts";
+import { MERCHANT_ENS } from "@/lib/merchants";
 import { formatUsdc, shortAddress } from "@/lib/format";
 
 const ROLES = [
@@ -36,6 +37,7 @@ export function BalanceStrip() {
       {ROLES.map((role, i) => {
         const addr = role.key === "vault" ? addrs?.vault : role.addr;
         const balance = data?.[i]?.result as bigint | undefined;
+        const ens = addr ? MERCHANT_ENS[addr.toLowerCase()] : undefined;
         return (
           <div
             key={role.key}
@@ -44,7 +46,14 @@ export function BalanceStrip() {
             <div className="text-[10px] uppercase tracking-wide text-neutral-500">
               {role.label}
             </div>
-            <div className="mt-0.5 font-mono text-xs text-neutral-500">
+            {ens && (
+              <div className="mt-0.5 font-mono text-xs text-emerald-400">
+                {ens}
+              </div>
+            )}
+            <div
+              className={`${ens ? "mt-0" : "mt-0.5"} font-mono text-[10px] text-neutral-500`}
+            >
               {addr ? shortAddress(addr) : "—"}
             </div>
             <div className="mt-1 font-mono text-sm">

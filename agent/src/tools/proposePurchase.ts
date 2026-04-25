@@ -2,6 +2,7 @@ import { isAddress, getAddress, decodeEventLog, type Hex } from "viem";
 import type { LlmToolSchema } from "../llm/index.js";
 import { listingHash, type ChainClients } from "../chain.js";
 import { policyVaultAbi, mockUsdcAbi } from "../abi.js";
+import { resolveEns } from "../ens.js";
 
 export const proposePurchaseSchema: LlmToolSchema = {
   name: "proposePurchase",
@@ -10,7 +11,11 @@ export const proposePurchaseSchema: LlmToolSchema = {
   parameters: {
     type: "object",
     properties: {
-      merchant: { type: "string", description: "EVM address of the merchant" },
+      merchant: {
+        type: "string",
+        description:
+          "Merchant identifier — either an EVM address (0x...) or an ENS name (e.g. vitalik.eth). ENS names are resolved against Ethereum mainnet before the on-chain call.",
+      },
       amount: {
         type: "string",
         description:
@@ -38,9 +43,30 @@ export async function proposePurchase(
   deps: ProposePurchaseDeps,
 ): Promise<string> {
   // ---- Input validation (hard guardrails per spec) ----
-  if (typeof args.merchant !== "string" || !isAddress(args.merchant)) {
+  if (typeof args.merchant !== "string" || args.merchant.length === 0) {
+    return JSON.stringify({ ok: false, error: "invalid_merchant" });
+  }
+
+  // Resolve ENS names to addresses. Hex addresses pass through unchanged.
+  let merchant: Hex;
+  let merchantEns: string | undefined;
+  if (isAddress(args.merchant)) {
+    merchant = getAddress(args.merchant);
+  } else if (args.merchant.includes(".") && !args.merchant.startsWith("0x")) {
+    const resolved = await resolveEns(args.merchant);
+    if (!resolved) {
+      return JSON.stringify({
+        ok: false,
+        error: "ens_resolution_failed",
+        ensName: args.merchant,
+      });
+    }
+    merchant = resolved;
+    merchantEns = args.merchant;
+  } else {
     return JSON.stringify({ ok: false, error: "invalid_merchant_address" });
   }
+
   if (typeof args.amount !== "string" || !/^[0-9]+$/.test(args.amount)) {
     return JSON.stringify({ ok: false, error: "amount_must_be_decimal_string" });
   }
@@ -60,13 +86,12 @@ export async function proposePurchase(
     return JSON.stringify({ ok: false, error: "listing_id_required" });
   }
 
-  const merchant = getAddress(args.merchant);
   const hash = listingHash(merchant, amount, args.listingId);
 
   if (deps.mode === "vulnerable") {
-    return await runVulnerable({ ...deps, merchant, amount });
+    return await runVulnerable({ ...deps, merchant, amount, merchantEns });
   }
-  return await runSafe({ ...deps, merchant, amount, hash });
+  return await runSafe({ ...deps, merchant, amount, hash, merchantEns });
 }
 
 // -------------- Safe path: PolicyVault.tryProposePurchase --------------
@@ -76,10 +101,11 @@ async function runSafe(p: {
   vaultAddress: Hex;
   userAddress: Hex;
   merchant: Hex;
+  merchantEns?: string;
   amount: bigint;
   hash: Hex;
 }): Promise<string> {
-  const { clients, vaultAddress, userAddress, merchant, amount, hash } = p;
+  const { clients, vaultAddress, userAddress, merchant, merchantEns, amount, hash } = p;
   const account = clients.account;
   // Simulate first to surface UnauthorizedAgent (a hard revert) without
   // burning gas; expected rejections stay within the call as events.
@@ -128,6 +154,7 @@ async function runSafe(p: {
           mode: "safe",
           status: "approved",
           merchant,
+          merchantEns,
           amount: amount.toString(),
           txHash,
         });
@@ -139,6 +166,7 @@ async function runSafe(p: {
           status: "rejected",
           reason: decoded.args.reason,
           merchant,
+          merchantEns,
           amount: amount.toString(),
           txHash,
         });
@@ -161,9 +189,10 @@ async function runVulnerable(p: {
   clients: ChainClients;
   usdcAddress: Hex;
   merchant: Hex;
+  merchantEns?: string;
   amount: bigint;
 }): Promise<string> {
-  const { clients, usdcAddress, merchant, amount } = p;
+  const { clients, usdcAddress, merchant, merchantEns, amount } = p;
   const account = clients.account;
 
   try {
@@ -201,6 +230,7 @@ async function runVulnerable(p: {
     mode: "vulnerable",
     status: "transferred",
     merchant,
+    merchantEns,
     amount: amount.toString(),
     txHash,
   });
