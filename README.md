@@ -69,6 +69,10 @@ The agent gets prompt-injected by the bait listing's description in **both** lan
 | **Payments & Invoicing** ($500) | Programmable spend primitive for agent-driven commerce; every transfer carries the policy version + reason code |
 | **Local Systems · Aotearoa** ($250) | NZ small-business framing: cafés / hapū-managed grants / Pacific remittance corridors all need agents that can't drain accounts. See the in-page Use Case panel. |
 
+## How the contracts work, in depth
+
+If you want a long-form walkthrough of the on-chain layer — beyond the architecture diagram above — see **[docs/contracts/](docs/contracts/)**. Five docs covering the architecture, how `setPolicy` works, the four-step onboarding flow, every guardrail and rejection reason, and a glossary of every term used in the codebase.
+
 ## Verified provenance
 
 - **PolicyVault source on Sourcify** ([exact_match](https://repo.sourcify.dev/contracts/full_match/43113/0x15b2B50FCC06CCdE9e80f4393b828F709f4934Ba/))
@@ -85,6 +89,7 @@ agent/       TypeScript agent: provider-agnostic LLM adapter (OpenAI/Anthropic),
 web/         Next.js demo UI: onboarding, balance strip, two-lane agent runs, on-chain event feed
 shared/      ABIs, deployed addresses per chain, explorer link helpers, shared TS types
 docs/        Build plan, run walkthrough, Fuji deploy runbook, AWS deploy runbook, demo script, demo recipe, ENS redirect source
+docs/contracts/  Deep-dive on PolicyVault: overview, setPolicy, onboarding flow, guardrails, glossary
 scripts/     Bash helpers for Fuji deploy + seed
 ```
 
