@@ -35,6 +35,10 @@ pnpm contracts:test
 pnpm typecheck
 ```
 
+## Deploying to Fuji
+
+For the public-explorer demo on Avalanche Fuji testnet, see [docs/fuji-deploy.md](docs/fuji-deploy.md). One command (`pnpm fuji:deploy`) plus a wallet click-through.
+
 ## LLM provider
 
 The agent uses a provider-agnostic adapter. Default is OpenAI with `gpt-5.5-codex`. Set `LLM_PROVIDER=anthropic` in `.env` to switch to Claude. See `.env.example`.
