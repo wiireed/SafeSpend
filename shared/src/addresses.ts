@@ -17,8 +17,8 @@ export const ADDRESSES: Record<SupportedChainId, DeployedAddresses> = {
   },
   // PR 5 fills these in after the Fuji deployment.
   43113: {
-    vault: ZERO,
-    usdc: ZERO,
+    usdc: "0x6754c656fe1ca74c9941f3d9aeac2d7fd93868e8",
+    vault: "0x15b2b50fcc06ccde9e80f4393b828f709f4934ba",
   },
 };
 
