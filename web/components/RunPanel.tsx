@@ -91,9 +91,15 @@ export function RunPanel({ mode, title, accent }: { mode: RunMode; title: string
         <button
           onClick={start}
           disabled={!address || status === "running"}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 ${accentBtn}`}
+          className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 ${accentBtn}`}
         >
-          {status === "running" ? "Running…" : "Run"}
+          {status === "running" && (
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-white"></span>
+            </span>
+          )}
+          {status === "running" ? "Running" : "Run"}
         </button>
       </div>
 
@@ -102,7 +108,9 @@ export function RunPanel({ mode, title, accent }: { mode: RunMode; title: string
           <div className="text-neutral-500">Click Run to start the agent.</div>
         )}
         {events.map((e, i) => (
-          <EventLine key={i} event={e} />
+          <div key={i} className="slide-in-up">
+            <EventLine event={e} />
+          </div>
         ))}
         {status === "done" && runId && (
           <div className="pt-2 text-neutral-500">
