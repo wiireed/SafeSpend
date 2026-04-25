@@ -50,6 +50,12 @@ export function TopBar() {
         </div>
 
         <div className="flex items-center gap-6 text-sm">
+          <a
+            href="/merchant"
+            className="hidden text-neutral-400 transition-colors hover:text-emerald-400 sm:inline"
+          >
+            For merchants →
+          </a>
           {address && policyTuple ? (
             <div className="flex items-center gap-4">
               <span className="text-neutral-400">

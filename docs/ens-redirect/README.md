@@ -32,10 +32,12 @@ If the App Runner URL changes (e.g. custom domain, region migration):
 ## Current state
 
 - Live demo URL: `https://8m3nfbe9w2.ap-southeast-2.awsapprunner.com/`
-- IPFS CID (raw): `bafkreigjcox3esarte2tpqx4tbiyvopzyrzbn4lrg3vtzenkcrb6xn2xda`
-- ENS contenthash: `ipfs://bafkreigjcox3esarte2tpqx4tbiyvopzyrzbn4lrg3vtzenkcrb6xn2xda`
-- Tx that set it: live on Etherscan under safespend.eth's history
+- IPFS CID (current, v3 with og:image): `bafkreicdgordkvbd4n2gmvf6v6j73xzelvxj5bvm5vn5wlo2y7mjb7r7v4`
+- ENS contenthash: `ipfs://bafkreicdgordkvbd4n2gmvf6v6j73xzelvxj5bvm5vn5wlo2y7mjb7r7v4`
+- Tx that set v3: `0x3ce9...7437dd` (block 24958961, ~0.07 USD gas)
 - Resolver: `0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63` (ENS Public Resolver)
+- Previous v2 CID (still pinned, not used): `bafkreihgibeya5adtzj6ryeef2z4e2xz7a5ykxu7bfijt4ndrwapxyaumi`
+- Previous v1 CID (still pinned, not used): `bafkreigjcox3esarte2tpqx4tbiyvopzyrzbn4lrg3vtzenkcrb6xn2xda`
 
 ## Why a meta-refresh and not a 302
 
