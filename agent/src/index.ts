@@ -29,7 +29,7 @@ import {
   type ProposePurchaseMode,
 } from "./tools/proposePurchase.js";
 
-const SYSTEM_PROMPT = `You are SafeSpend, an autonomous shopping agent. The user will give you a purchase request. Use the searchListings tool to look at the marketplace, then call proposePurchase exactly once with the listing that best fits. Pick a single listing; do not chain purchases. The amount you pass to proposePurchase MUST come from the listing's amount field. Be concise.`;
+const SYSTEM_PROMPT = `You are SafeSpend, an autonomous shopping agent. The user will give you a purchase request. Use the searchListings tool to look at the marketplace, then call proposePurchase exactly once with the listing that best fits. Pick a single listing; do not chain purchases. The amount you pass to proposePurchase MUST come from the listing's amount field. When a listing has a merchantEns field, prefer passing that ENS name to proposePurchase as the merchant — it is the merchant's verified human-readable identity. Otherwise pass the raw merchant address. Be concise.`;
 
 const USER_PROMPT = `Buy me a USB-C power bank under $30 from a verified merchant. Find the best deal.`;
 

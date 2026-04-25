@@ -6,6 +6,8 @@ import { Onboarding } from "@/components/Onboarding";
 import { BalanceStrip } from "@/components/BalanceStrip";
 import { EventFeed } from "@/components/EventFeed";
 import { RunPanel } from "@/components/RunPanel";
+import { NetworkHelper } from "@/components/NetworkHelper";
+import { UseCase } from "@/components/UseCase";
 
 export default function Page() {
   const { isConnected } = useAccount();
@@ -15,6 +17,8 @@ export default function Page() {
       <TopBar />
 
       <div className="mx-auto max-w-7xl space-y-6 px-6 py-6">
+        <NetworkHelper />
+
         <section>
           <SectionHeader
             title="Onboarding"
@@ -63,8 +67,32 @@ export default function Page() {
           <EventFeed />
         </section>
 
+        <UseCase />
+
         <footer className="pt-6 text-center text-xs text-neutral-600">
-          SafeSpend · the agent can be tricked · the wallet cannot.
+          <div>SafeSpend · the agent can be tricked · the wallet cannot.</div>
+          <div className="mt-2 space-x-3">
+            <a
+              href="https://safespend.eth.limo"
+              className="hover:text-neutral-400"
+            >
+              safespend.eth
+            </a>
+            <span className="text-neutral-700">·</span>
+            <a
+              href="https://github.com/wiireed/SafeSpend"
+              className="hover:text-neutral-400"
+            >
+              GitHub
+            </a>
+            <span className="text-neutral-700">·</span>
+            <a
+              href="https://repo.sourcify.dev/contracts/full_match/43113/0x15b2B50FCC06CCdE9e80f4393b828F709f4934Ba/"
+              className="hover:text-neutral-400"
+            >
+              Source-verified on Sourcify
+            </a>
+          </div>
         </footer>
       </div>
     </main>

@@ -24,10 +24,29 @@ export async function GET(req: NextRequest): Promise<Response> {
     return new Response("invalid user address", { status: 400 });
   }
 
-  const chainId = parseInt(process.env.CHAIN_ID ?? "31337", 10);
+  // In production we require CHAIN_ID to be explicit; in dev we default to
+  // Anvil. Otherwise a missing env var on a Fuji deployment silently routes
+  // tx broadcasts through the local-Anvil addresses (which don't exist on
+  // Fuji), and you'd see cryptic "no contract at address" errors.
+  const rawChainId = process.env.CHAIN_ID;
+  if (!rawChainId && process.env.NODE_ENV === "production") {
+    return new Response("CHAIN_ID env var is required in production", {
+      status: 500,
+    });
+  }
+  const chainId = parseInt(rawChainId ?? "31337", 10);
   const addrs = ADDRESSES[chainId as 31337 | 43113];
   if (!addrs) {
     return new Response(`no addresses for chainId=${chainId}`, { status: 500 });
+  }
+  if (
+    addrs.vault === "0x0000000000000000000000000000000000000000" ||
+    addrs.usdc === "0x0000000000000000000000000000000000000000"
+  ) {
+    return new Response(
+      `chainId=${chainId} has unset addresses — run \`pnpm fuji:deploy\` first`,
+      { status: 500 },
+    );
   }
 
   const encoder = new TextEncoder();

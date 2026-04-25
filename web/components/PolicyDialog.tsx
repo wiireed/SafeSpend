@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import type { Hex } from "viem";
+import { isAddress, type Hex } from "viem";
 import { policyVaultAbi, ADDRESSES, ANVIL_ACCOUNTS } from "@/lib/contracts";
 import { parseUsdc } from "@/lib/format";
+import { resolveAddressOrEns } from "@/lib/ens";
+
+type ResolvedRow =
+  | { kind: "address"; input: string; address: Hex }
+  | { kind: "ens-pending"; input: string }
+  | { kind: "ens-resolved"; input: string; address: Hex }
+  | { kind: "ens-failed"; input: string }
+  | { kind: "invalid"; input: string };
 
 export function PolicyDialog({ onClose }: { onClose: () => void }) {
   const { address } = useAccount();
@@ -18,21 +26,63 @@ export function PolicyDialog({ onClose }: { onClose: () => void }) {
   const [merchants, setMerchants] = useState<string>(
     `${ANVIL_ACCOUNTS.merchantA}\n${ANVIL_ACCOUNTS.merchantB}`,
   );
+  const [resolved, setResolved] = useState<ResolvedRow[]>([]);
 
   const { writeContract, data: txHash, isPending, error } = useWriteContract();
   const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({
     hash: txHash,
   });
 
+  useEffect(() => {
+    const inputs = merchants
+      .split(/\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (inputs.length === 0) {
+      setResolved([]);
+      return;
+    }
+
+    const initial: ResolvedRow[] = inputs.map((input) =>
+      isAddress(input)
+        ? { kind: "address", input, address: input as Hex }
+        : input.includes(".")
+          ? { kind: "ens-pending", input }
+          : { kind: "invalid", input },
+    );
+    setResolved(initial);
+
+    let cancelled = false;
+    Promise.all(
+      initial.map(async (row): Promise<ResolvedRow> => {
+        if (row.kind !== "ens-pending") return row;
+        const address = await resolveAddressOrEns(row.input);
+        return address
+          ? { kind: "ens-resolved", input: row.input, address }
+          : { kind: "ens-failed", input: row.input };
+      }),
+    ).then((next) => {
+      if (!cancelled) setResolved(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [merchants]);
+
+  const allMerchantsOk =
+    resolved.length > 0 &&
+    resolved.every((r) => r.kind === "address" || r.kind === "ens-resolved");
+
   const submit = () => {
-    if (!address || !addrs) return;
+    if (!address || !addrs || !allMerchantsOk) return;
     const expiresAt = BigInt(
       Math.floor(Date.now() / 1000) + parseInt(hours, 10) * 3600,
     );
-    const allowedMerchants = merchants
-      .split(/\s+/)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0) as Hex[];
+    const allowedMerchants = resolved
+      .map((r) =>
+        r.kind === "address" || r.kind === "ens-resolved" ? r.address : null,
+      )
+      .filter((a): a is Hex => a !== null);
 
     writeContract({
       address: addrs.vault,
@@ -101,13 +151,47 @@ export function PolicyDialog({ onClose }: { onClose: () => void }) {
             />
           </Field>
 
-          <Field label="Allowed merchants (one per line)">
+          <Field label="Allowed merchants (one per line — 0x address or name.eth)">
             <textarea
               value={merchants}
               onChange={(e) => setMerchants(e.target.value)}
               rows={3}
               className={`${inputClass} font-mono text-xs`}
             />
+            {resolved.length > 0 && (
+              <ul className="mt-2 space-y-1 text-[11px]">
+                {resolved.map((row, i) => (
+                  <li key={`${row.input}-${i}`} className="font-mono">
+                    {row.kind === "address" && (
+                      <span className="text-neutral-400">
+                        {short(row.address)}
+                      </span>
+                    )}
+                    {row.kind === "ens-pending" && (
+                      <span className="text-neutral-500">
+                        {row.input} <span className="text-neutral-600">→ resolving…</span>
+                      </span>
+                    )}
+                    {row.kind === "ens-resolved" && (
+                      <span className="text-emerald-400">
+                        {row.input}{" "}
+                        <span className="text-neutral-500">→ {short(row.address)}</span>
+                      </span>
+                    )}
+                    {row.kind === "ens-failed" && (
+                      <span className="text-rose-400">
+                        {row.input} <span className="text-neutral-500">→ no resolver</span>
+                      </span>
+                    )}
+                    {row.kind === "invalid" && (
+                      <span className="text-rose-400">
+                        {row.input} <span className="text-neutral-500">→ not an address or .eth name</span>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </Field>
         </div>
 
@@ -126,7 +210,7 @@ export function PolicyDialog({ onClose }: { onClose: () => void }) {
           </button>
           <button
             onClick={submit}
-            disabled={isPending || confirming || !address}
+            disabled={isPending || confirming || !address || !allMerchantsOk}
             className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium hover:bg-emerald-500 disabled:opacity-50"
           >
             {isPending
@@ -156,3 +240,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const inputClass =
   "w-full rounded-md border border-neutral-700 bg-neutral-950 px-2.5 py-1.5 text-sm text-neutral-100 outline-none focus:border-emerald-600";
+
+function short(addr: string): string {
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}

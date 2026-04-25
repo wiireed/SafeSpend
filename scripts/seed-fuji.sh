@@ -2,8 +2,9 @@
 # Top up the vulnerable session wallet on Fuji.
 #
 # The safe-mode user funds themselves through the web UI's onboarding
-# (setPolicy -> mint -> approve -> deposit), so this script ONLY mints
-# MockUSDC to the agent EOA used by the vulnerable run.
+# (setPolicy -> mint -> approve -> deposit), so this script funds the
+# vulnerable agent: mints MockUSDC AND sends a small amount of AVAX
+# for gas (the agent EOA needs gas to broadcast txns).
 #
 # Required env:
 #   DEPLOYER_PRIVATE_KEY        deployer key (the same one used by deploy-fuji.sh)
@@ -11,7 +12,8 @@
 #
 # Optional env:
 #   FUJI_RPC_URL                defaults to the public Fuji RPC.
-#   AGENT_BUDGET                amount in USDC base units; defaults to 500 USDC.
+#   AGENT_BUDGET                MockUSDC base units; defaults to 500 USDC.
+#   AGENT_AVAX                  AVAX amount (with unit) to send for gas; defaults to 0.5ether.
 
 set -euo pipefail
 
@@ -22,6 +24,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 FUJI_RPC_URL="${FUJI_RPC_URL:-https://api.avax-test.network/ext/bc/C/rpc}"
 AGENT_BUDGET="${AGENT_BUDGET:-500000000}"  # 500 USDC, 6 decimals
+AGENT_AVAX="${AGENT_AVAX:-0.3ether}"  # leaves headroom in deployer; faucet only drops 2 AVAX
 
 # Pull the deployed USDC address from shared/src/addresses.ts so we don't
 # have to re-pass it.
@@ -40,6 +43,17 @@ cast send "$USDC" \
   --private-key "$DEPLOYER_PRIVATE_KEY"
 
 echo ""
-echo "Agent balance:"
+echo "Sending $AGENT_AVAX AVAX (gas) to $AUTHORIZED_AGENT_ADDRESS"
+
+cast send "$AUTHORIZED_AGENT_ADDRESS" \
+  --value "$AGENT_AVAX" \
+  --rpc-url "$FUJI_RPC_URL" \
+  --private-key "$DEPLOYER_PRIVATE_KEY"
+
+echo ""
+echo "Agent USDC balance:"
 cast call "$USDC" "balanceOf(address)(uint256)" "$AUTHORIZED_AGENT_ADDRESS" \
   --rpc-url "$FUJI_RPC_URL"
+
+echo "Agent AVAX balance:"
+cast balance "$AUTHORIZED_AGENT_ADDRESS" --rpc-url "$FUJI_RPC_URL"
