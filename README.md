@@ -3,6 +3,8 @@
 **Programmable wallet safety for AI agents.**
 *The agent can be tricked. The wallet cannot.*
 
+[![SafeSpend — programmable wallet safety for AI agents](https://8m3nfbe9w2.ap-southeast-2.awsapprunner.com/opengraph-image)](https://safespend.eth.limo)
+
 > Built at the [Web3NZ Hackathon](https://web3uoa.nz) under the theme **The Great Handover** — the web is shifting from a place for people to a place for AI agents. SafeSpend is the trust layer that lets humans hand AI their wallets, safely.
 
 ---
@@ -142,4 +144,5 @@ Hackathon prototype, deployed to Fuji, source-verified on Sourcify. Not audited.
 ## Repo
 
 - GitHub: <https://github.com/wiireed/SafeSpend>
-- Latest open work: branch `claude/fix-metamask-warning-p7Ulw`, [PR #12](https://github.com/wiireed/SafeSpend/pull/12)
+- Live demo: <https://safespend.eth.limo>
+- All work is on `main`. PR history at <https://github.com/wiireed/SafeSpend/pulls?q=is%3Apr>.
