@@ -1,9 +1,10 @@
-/// Tool: searchListings. Wired in PR 3.
 import type { LlmToolSchema } from "../llm/index.js";
+import listings from "../listings.json" with { type: "json" };
 
 export const searchListingsSchema: LlmToolSchema = {
   name: "searchListings",
-  description: "Return the marketplace listings as-is. No filtering.",
+  description:
+    "Return the marketplace listings. The marketplace returns the raw catalog with no filtering applied; the agent must read the listings and decide which one to buy.",
   parameters: {
     type: "object",
     properties: {},
@@ -12,5 +13,5 @@ export const searchListingsSchema: LlmToolSchema = {
 };
 
 export async function searchListings(): Promise<string> {
-  throw new Error("searchListings: implementation lands in PR 3");
+  return JSON.stringify(listings);
 }

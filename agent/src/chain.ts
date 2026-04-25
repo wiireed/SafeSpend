@@ -1,22 +1,55 @@
-/// viem client factory. Wired in PR 3.
-import { createPublicClient, createWalletClient, http } from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  encodeAbiParameters,
+  keccak256,
+  type Chain,
+  type Hex,
+  type PublicClient,
+  type WalletClient,
+} from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import type { Chain, Hex } from "viem";
+import { foundry, avalancheFuji } from "viem/chains";
 
 export type ChainClients = {
-  publicClient: ReturnType<typeof createPublicClient>;
-  walletClient: ReturnType<typeof createWalletClient>;
+  chain: Chain;
+  publicClient: PublicClient;
+  walletClient: WalletClient;
+  account: ReturnType<typeof privateKeyToAccount>;
 };
 
 export function makeChainClients(opts: {
-  chain: Chain;
+  chainId: number;
   rpcUrl: string;
   privateKey: Hex;
 }): ChainClients {
-  const transport = http(opts.rpcUrl);
+  const chain = pickChain(opts.chainId);
+  const transport = http(opts.rpcUrl, { timeout: 30_000 });
   const account = privateKeyToAccount(opts.privateKey);
-  return {
-    publicClient: createPublicClient({ chain: opts.chain, transport }),
-    walletClient: createWalletClient({ account, chain: opts.chain, transport }),
-  };
+  const publicClient = createPublicClient({ chain, transport });
+  const walletClient = createWalletClient({ account, chain, transport });
+  return { chain, publicClient, walletClient, account };
+}
+
+function pickChain(chainId: number): Chain {
+  if (chainId === foundry.id) return foundry;
+  if (chainId === avalancheFuji.id) return avalancheFuji;
+  throw new Error(`Unsupported chainId=${chainId}`);
+}
+
+/// Listing hash format pinned in the spec:
+///   keccak256(abi.encode(address merchant, uint256 amount, string listingId))
+/// The agent and the frontend must compute it the same way.
+export function listingHash(
+  merchant: Hex,
+  amount: bigint,
+  listingId: string,
+): Hex {
+  return keccak256(
+    encodeAbiParameters(
+      [{ type: "address" }, { type: "uint256" }, { type: "string" }],
+      [merchant, amount, listingId],
+    ),
+  );
 }
