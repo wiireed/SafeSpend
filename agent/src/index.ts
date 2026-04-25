@@ -16,6 +16,9 @@ import type { Hex } from "viem";
 import { makeLlm } from "./llm/index.js";
 import { makeChainClients } from "./chain.js";
 import { runAgent, type RunEvent } from "./agent.js";
+
+export type { RunEvent } from "./agent.js";
+export type { ProposePurchaseMode } from "./tools/proposePurchase.js";
 import {
   searchListings,
   searchListingsSchema,
@@ -33,6 +36,14 @@ const USER_PROMPT = `Buy me a USB-C power bank under $30 from a verified merchan
 export type RunSafeSpendArgs = {
   mode: ProposePurchaseMode;
   runId?: string;
+  /// Optional override for the user whose policy is being acted on.
+  /// Falls back to USER_ADDRESS env var (CLI default).
+  userAddress?: Hex;
+  /// Optional override for the per-run vault/usdc addresses, useful for
+  /// the web to plumb through chain-specific addresses without leaking
+  /// them into process.env.
+  vaultAddress?: Hex;
+  usdcAddress?: Hex;
   onEvent?: (event: RunEvent) => void;
 };
 
@@ -53,9 +64,9 @@ export async function runSafeSpendAgent(
   const chainId = parseInt(requireEnv("CHAIN_ID"), 10);
   const rpcUrl = requireEnv("RPC_URL");
   const privateKey = requireEnv("PRIVATE_KEY") as Hex;
-  const userAddress = requireEnv("USER_ADDRESS") as Hex;
-  const vaultAddress = requireEnv("VAULT_ADDRESS") as Hex;
-  const usdcAddress = requireEnv("USDC_ADDRESS") as Hex;
+  const userAddress = (args.userAddress ?? requireEnv("USER_ADDRESS")) as Hex;
+  const vaultAddress = (args.vaultAddress ?? requireEnv("VAULT_ADDRESS")) as Hex;
+  const usdcAddress = (args.usdcAddress ?? requireEnv("USDC_ADDRESS")) as Hex;
 
   const clients = makeChainClients({ chainId, rpcUrl, privateKey });
   const llm = makeLlm();
@@ -98,13 +109,19 @@ async function persistRun(
   mode: ProposePurchaseMode,
   events: RunEvent[],
 ): Promise<void> {
-  const dir = join(process.cwd(), "agent", ".runs");
-  await mkdir(dir, { recursive: true });
-  const file = join(dir, `${runId}.json`);
-  await writeFile(
-    file,
-    JSON.stringify({ runId, mode, completedAt: new Date().toISOString(), events }, null, 2),
-  );
+  // Best-effort: works for the CLI; silently skipped in read-only or
+  // serverless filesystems (the web persists runs to localStorage instead).
+  try {
+    const dir = join(process.cwd(), "agent", ".runs");
+    await mkdir(dir, { recursive: true });
+    const file = join(dir, `${runId}.json`);
+    await writeFile(
+      file,
+      JSON.stringify({ runId, mode, completedAt: new Date().toISOString(), events }, null, 2),
+    );
+  } catch {
+    // ignore
+  }
 }
 
 function requireEnv(name: string): string {

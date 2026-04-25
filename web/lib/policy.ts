@@ -1,8 +1,11 @@
-/// Wallet-side policy transactions (setPolicy, deposit, etc.). Wired in PR 4.
-import type { PolicyInput } from "@safespend/shared/types";
+import type { Hex } from "viem";
 
-export type SetPolicyArgs = PolicyInput;
+export type PolicyInput = {
+  maxPerTx: bigint;
+  maxTotal: bigint;
+  expiresAt: bigint;
+  authorizedAgent: Hex;
+  allowedMerchants: Hex[];
+};
 
-export async function setPolicy(_args: SetPolicyArgs): Promise<`0x${string}`> {
-  throw new Error("setPolicy: implementation lands in PR 4");
-}
+export type Policy = PolicyInput & { version: bigint };
