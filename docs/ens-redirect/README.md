@@ -4,6 +4,7 @@ The folder pinned to IPFS contains:
 
 - `index.html` — root redirect, served at `safespend.eth.limo/`
 - `merchant/index.html` — merchant page redirect, served at `safespend.eth.limo/merchant`
+- `activity/index.html` — activity page redirect, served at `safespend.eth.limo/activity`
 
 When you visit `https://safespend.eth.limo` (or `https://safespend.eth`
 in Brave), the gateway serves the matching HTML for the path you

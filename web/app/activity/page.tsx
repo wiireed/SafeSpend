@@ -25,12 +25,17 @@ import { formatUsdc, shortAddress } from "@/lib/format";
 
 const FUJI_VAULT = ADDRESSES[43113].vault;
 
+/// Use the public Fuji RPC for historical getLogs queries — it allows
+/// ~2000-block ranges by default, vs Alchemy free tier's strict 10-block
+/// cap on eth_getLogs. The Alchemy URL is fine for high-frequency contract
+/// reads (used elsewhere in the app), but for a one-shot historical query
+/// on a public-facing page the public RPC is more permissive and removes
+/// the API key dependency.
+const PUBLIC_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
+
 const fujiClient = createPublicClient({
   chain: avalancheFuji,
-  transport: http(
-    process.env.NEXT_PUBLIC_FUJI_RPC_URL ??
-      "https://api.avax-test.network/ext/bc/C/rpc",
-  ),
+  transport: http(PUBLIC_FUJI_RPC),
 });
 
 const APPROVED_EVENT = parseAbiItem(
@@ -65,8 +70,12 @@ export default function ActivityPage() {
     try {
       const head = await fujiClient.getBlockNumber();
       setLatestBlock(head);
-      // Fuji block time is ~2s. 50000 blocks = ~28 hours of history.
-      const fromBlock = head > 50000n ? head - 50000n : 0n;
+      // Fuji block time is ~2s. Public RPC default getLogs range is
+      // ~2000 blocks per request. 2000 blocks = ~67 min of history,
+      // plenty for a "recent activity" view. For a deeper history we'd
+      // paginate or use a dedicated indexer.
+      const HISTORY_BLOCKS = 2000n;
+      const fromBlock = head > HISTORY_BLOCKS ? head - HISTORY_BLOCKS : 0n;
 
       const [approvedLogs, rejectedLogs] = await Promise.all([
         fujiClient.getLogs({
@@ -215,7 +224,7 @@ export default function ActivityPage() {
 
         {status === "ready" && entries.length === 0 && (
           <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-6 text-center text-sm text-neutral-500">
-            No events in the last 50,000 blocks (~28 hours).
+            No events in the last 2,000 blocks (~67 min).
             <br />
             Try clicking <strong>Run</strong> on the{" "}
             <a href="/" className="text-emerald-400 hover:underline">
