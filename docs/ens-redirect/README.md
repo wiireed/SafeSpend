@@ -52,12 +52,16 @@ docs/ens-redirect/
 ## Current state
 
 - Live demo URL: `https://8m3nfbe9w2.ap-southeast-2.awsapprunner.com/`
-- IPFS CID (current, v3 with og:image): `bafkreicdgordkvbd4n2gmvf6v6j73xzelvxj5bvm5vn5wlo2y7mjb7r7v4`
-- ENS contenthash: `ipfs://bafkreicdgordkvbd4n2gmvf6v6j73xzelvxj5bvm5vn5wlo2y7mjb7r7v4`
-- Tx that set v3: `0x3ce9...7437dd` (block 24958961, ~0.07 USD gas)
+- IPFS CID (current, v4 directory pin with `/merchant` subroute): `bafybeievkmhigoqabezgro44pizp7ayqjkwsb5yg6uuwzxojc5umqghmw4`
+- ENS contenthash: `ipfs://bafybeievkmhigoqabezgro44pizp7ayqjkwsb5yg6uuwzxojc5umqghmw4`
 - Resolver: `0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63` (ENS Public Resolver)
-- Previous v2 CID (still pinned, not used): `bafkreihgibeya5adtzj6ryeef2z4e2xz7a5ykxu7bfijt4ndrwapxyaumi`
-- Previous v1 CID (still pinned, not used): `bafkreigjcox3esarte2tpqx4tbiyvopzyrzbn4lrg3vtzenkcrb6xn2xda`
+- Previous v3 CID (raw file, no /merchant): `bafkreicdgordkvbd4n2gmvf6v6j73xzelvxj5bvm5vn5wlo2y7mjb7r7v4`
+- Previous v2 CID (raw file, branded only): `bafkreihgibeya5adtzj6ryeef2z4e2xz7a5ykxu7bfijt4ndrwapxyaumi`
+- Previous v1 CID (raw file, plain redirect): `bafkreigjcox3esarte2tpqx4tbiyvopzyrzbn4lrg3vtzenkcrb6xn2xda`
+
+> Note: v4 is a directory pin (codec `0x70` / `bafybei...`) so subroutes
+> like `/merchant` resolve. Previous versions were single-file pins
+> (codec `0x55` / `bafkrei...`) which only served the root path.
 
 ## Why a meta-refresh and not a 302
 
