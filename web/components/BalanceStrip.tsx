@@ -33,7 +33,7 @@ export function BalanceStrip() {
   });
 
   return (
-    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
       {ROLES.map((role, i) => {
         const addr = role.key === "vault" ? addrs?.vault : role.addr;
         const balance = data?.[i]?.result as bigint | undefined;
@@ -41,13 +41,16 @@ export function BalanceStrip() {
         return (
           <div
             key={role.key}
-            className="rounded-md border border-neutral-800 bg-neutral-900/50 p-2"
+            className="min-w-0 rounded-md border border-neutral-800 bg-neutral-900/50 p-2"
           >
             <div className="text-[10px] uppercase tracking-wide text-neutral-500">
               {role.label}
             </div>
             {ens && (
-              <div className="mt-0.5 font-mono text-xs text-emerald-400">
+              <div
+                className="mt-0.5 truncate font-mono text-[10px] text-emerald-400 sm:text-xs"
+                title={ens}
+              >
                 {ens}
               </div>
             )}

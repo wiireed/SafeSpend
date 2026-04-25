@@ -33,23 +33,23 @@ export function TopBar() {
 
   return (
     <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-emerald-500" />
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
           <span className="font-semibold">SafeSpend</span>
-          <span className="text-sm text-neutral-500">
+          <span className="hidden text-sm text-neutral-500 md:inline">
             programmable wallet safety for AI agents
           </span>
           {chainLabel && (
             <span
-              className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${chainLabel.className}`}
+              className={`ml-1 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide sm:ml-2 ${chainLabel.className}`}
             >
               {chainLabel.text}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-6 text-sm">
+        <div className="flex shrink-0 items-center gap-3 text-sm sm:gap-6">
           <a
             href="/merchant"
             className="hidden text-neutral-400 transition-colors hover:text-emerald-400 sm:inline"
@@ -57,7 +57,7 @@ export function TopBar() {
             For merchants →
           </a>
           {address && policyTuple ? (
-            <div className="flex items-center gap-4">
+            <div className="hidden items-center gap-4 lg:flex">
               <span className="text-neutral-400">
                 policy v{policyTuple.version.toString()}
               </span>
