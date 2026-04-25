@@ -17,6 +17,10 @@ shared/      ABIs, addresses, explorer link helper, shared TS types
 
 ## Quickstart
 
+For a full end-to-end walkthrough (anvil + MetaMask + onboarding + both agents) see **[docs/run-walkthrough.md](docs/run-walkthrough.md)**. Recommended for first-time setup and for handing the project to teammates.
+
+Minimal smoke check:
+
 ```sh
 # 1. Install pnpm deps for agent/web/shared
 pnpm install
@@ -41,4 +45,4 @@ For the public-explorer demo on Avalanche Fuji testnet, see [docs/fuji-deploy.md
 
 ## LLM provider
 
-The agent uses a provider-agnostic adapter. Default is OpenAI with `gpt-5.5-codex`. Set `LLM_PROVIDER=anthropic` in `.env` to switch to Claude. See `.env.example`.
+The agent uses a provider-agnostic adapter. Default is OpenAI with `gpt-4o-mini`. Set `LLM_PROVIDER=anthropic` in `.env` to switch to Claude. See `.env.example`.
