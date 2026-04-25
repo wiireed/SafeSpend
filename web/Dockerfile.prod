@@ -1,0 +1,80 @@
+### SafeSpend production image — Next.js standalone, AWS App Runner ready.
+###
+### Build from the repo root (so the monorepo workspace files are in context):
+###   docker buildx build --platform linux/amd64 \
+###     -f web/Dockerfile.prod -t safespend-web:v1 .
+###
+### Runtime env vars are injected by App Runner; do NOT bake secrets here.
+### NEXT_PUBLIC_* vars are baked at build time, so pass them as --build-arg
+### if/when they need to differ between staging and prod.
+
+# ---------- Stage 1: deps ----------
+FROM node:20-alpine AS deps
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+
+# Copy only manifests first so docker layer cache survives source changes.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY web/package.json ./web/
+COPY agent/package.json ./agent/
+COPY shared/package.json ./shared/
+
+RUN pnpm install --frozen-lockfile --prefer-offline
+
+# ---------- Stage 2: builder ----------
+FROM node:20-alpine AS builder
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+
+# Copy node_modules from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/web/node_modules ./web/node_modules
+COPY --from=deps /app/agent/node_modules ./agent/node_modules
+COPY --from=deps /app/shared/node_modules ./shared/node_modules
+
+# Now copy sources
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY shared ./shared
+COPY agent ./agent
+COPY web ./web
+
+# Public env vars are baked at build time.
+ARG NEXT_PUBLIC_CHAIN_ID
+ARG NEXT_PUBLIC_FUJI_RPC_URL
+ARG NEXT_PUBLIC_MAINNET_RPC_URL
+ENV NEXT_PUBLIC_CHAIN_ID=${NEXT_PUBLIC_CHAIN_ID}
+ENV NEXT_PUBLIC_FUJI_RPC_URL=${NEXT_PUBLIC_FUJI_RPC_URL}
+ENV NEXT_PUBLIC_MAINNET_RPC_URL=${NEXT_PUBLIC_MAINNET_RPC_URL}
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+RUN pnpm -F @safespend/web build
+
+# ---------- Stage 3: runner ----------
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# Non-root for App Runner safety
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser --system --uid 1001 nextjs
+
+# Copy the standalone output. Next places the workspace at
+# /app/web/.next/standalone (because outputFileTracingRoot is the repo root).
+COPY --from=builder --chown=nextjs:nodejs /app/web/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/web/.next/static ./web/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/web/public ./web/public
+# Listings JSON is read at runtime by the agent's searchListings tool;
+# next's tracer should pull it in but we copy explicitly to be safe.
+COPY --from=builder --chown=nextjs:nodejs /app/agent/src/listings.json ./agent/src/listings.json
+
+USER nextjs
+EXPOSE 3000
+
+# Standalone server entrypoint lives at web/server.js
+CMD ["node", "web/server.js"]

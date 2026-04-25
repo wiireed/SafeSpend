@@ -1,0 +1,41 @@
+# Source control
+.git
+.gitignore
+.gitmodules
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+
+# Dependency / build outputs (rebuilt inside container)
+node_modules
+**/node_modules
+.pnpm-store
+**/.next
+**/dist
+
+# Foundry artifacts (huge, irrelevant to the web image)
+contracts/lib
+contracts/cache
+contracts/out
+contracts/broadcast
+
+# Local dev infra
+docker-compose.yml
+**/Dockerfile*
+**/.dockerignore
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+
+# Misc
+docs
+*.log
+.runs
+agent/.runs
+
+# Keep .gitkeep files etc
+!**/.gitkeep
