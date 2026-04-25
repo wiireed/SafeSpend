@@ -42,7 +42,7 @@ export function makeLlm(): Llm {
   if (provider === "openai") {
     return new OpenAILlm({
       apiKey: requireEnv("OPENAI_API_KEY"),
-      model: process.env.OPENAI_MODEL ?? "gpt-5.6-codex",
+      model: process.env.OPENAI_MODEL ?? "gpt-5.5-codex",
     });
   }
   if (provider === "anthropic") {
