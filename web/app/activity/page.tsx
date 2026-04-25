@@ -160,7 +160,9 @@ export default function ActivityPage() {
           <div className="flex min-w-0 items-center gap-2">
             <div className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
             <span className="font-semibold">SafeSpend</span>
-            <span className="text-sm text-neutral-500">activity</span>
+            <span className="hidden text-sm text-neutral-500 sm:inline">
+              activity
+            </span>
             <span className="ml-1 shrink-0 rounded border border-rose-800/60 bg-rose-900/40 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-rose-300 sm:ml-2">
               Avalanche Fuji
             </span>
@@ -169,18 +171,18 @@ export default function ActivityPage() {
             href="/"
             className="shrink-0 text-sm text-neutral-400 hover:text-neutral-200"
           >
-            ← back to demo
+            ← back
           </a>
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <section className="mb-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-800/50 bg-emerald-950/30 px-3 py-1 text-xs font-medium uppercase tracking-wider text-emerald-300">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             On-chain · auto-refreshes every 60s
           </div>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight">
+          <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
             Live PolicyVault activity
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-neutral-400">
@@ -274,7 +276,7 @@ function ActivityRow({
       className={`flex flex-col gap-2 rounded-md border p-3 text-sm sm:flex-row sm:items-center sm:justify-between ${accent}`}
     >
       <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className={labelColor}>{label}</span>
           <span className="font-mono text-neutral-100">
             {formatUsdc(entry.amount)} USDC
