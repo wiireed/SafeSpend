@@ -1,33 +1,53 @@
 # ENS contenthash redirect
 
-The static HTML at `index.html` is what's pinned to IPFS and pointed at by
-`safespend.eth`'s ENS contenthash record. When you visit
-`https://safespend.eth.limo` (or `https://safespend.eth` in Brave), the
-gateway serves this HTML, which immediately meta-refreshes to the live
-demo URL.
+The folder pinned to IPFS contains:
+
+- `index.html` — root redirect, served at `safespend.eth.limo/`
+- `merchant/index.html` — merchant page redirect, served at `safespend.eth.limo/merchant`
+
+When you visit `https://safespend.eth.limo` (or `https://safespend.eth`
+in Brave), the gateway serves the matching HTML for the path you
+requested, which immediately meta-refreshes to the live demo URL on
+App Runner.
 
 Why this indirection: ENS contenthashes resolve to static IPFS content,
 not arbitrary URLs. Our actual demo is a server-side Next.js app on AWS
 App Runner — can't be served directly from IPFS. The redirect HTML is
 the bridge.
 
-## Updating the redirect
+Why a folder (not a single file): so that subroutes work. A single-file
+pin only serves the root `/`. With a folder, every directory's
+`index.html` becomes a navigable path. Adding `/foo` is just a matter
+of adding `foo/index.html` to the folder, re-pinning, and updating the
+ENS contenthash.
 
-If the App Runner URL changes (e.g. custom domain, region migration):
+## Updating the redirect (any change)
 
-1. Edit `index.html` — replace both occurrences of the App Runner URL.
-   - The `meta http-equiv="refresh"` content
-   - The `link rel="canonical"` href
-   - The visible link text and `<code>` block (cosmetic)
-2. Pin the updated file to IPFS via Pinata:
-   - https://app.pinata.cloud → Files → + Add Files → upload `index.html`
-   - Copy the new CID
+If the App Runner URL changes, or you add/edit a subroute:
+
+1. Edit the relevant `*.html` file under `docs/ens-redirect/`.
+2. Pin the **whole `docs/ens-redirect/` folder** to IPFS via Pinata:
+   - https://app.pinata.cloud → Files → + Add → **Folder** (not File)
+   - Drag the entire `docs/ens-redirect/` directory in
+   - Get the new directory CID (starts with `bafybei...`)
 3. Update the ENS contenthash record:
    - https://app.ens.domains/safespend.eth → Records tab → Other → Content
    - Paste `ipfs://<new-CID>`
    - Save → confirm in MetaMask (~$1-3 mainnet gas)
 4. Wait ~5 min for `eth.limo` cache to refresh, or use `eth.link` for
    a different cache.
+
+## Adding a new subroute
+
+Mirror Next.js's app-router convention: a directory per route, each
+with its own `index.html` redirect.
+
+```
+docs/ens-redirect/
+├── index.html              ← /
+├── merchant/index.html     ← /merchant
+└── about/index.html        ← /about (hypothetical)
+```
 
 ## Current state
 
