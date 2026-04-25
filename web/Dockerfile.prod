@@ -78,5 +78,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/agent/src/listings.json ./agent/s
 USER nextjs
 EXPOSE 3000
 
-# Standalone server entrypoint lives at web/server.js
-CMD ["node", "web/server.js"]
+# Force HOSTNAME=0.0.0.0 even if a runtime environment (App Runner, ECS, etc.)
+# auto-injects its own HOSTNAME — Next.js standalone reads HOSTNAME and binds
+# only to that interface, so an injected compute.internal value would make
+# the container unreachable behind a load balancer.
+CMD ["sh", "-c", "HOSTNAME=0.0.0.0 node web/server.js"]
