@@ -27,7 +27,7 @@ export default function MerchantPage() {
   );
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100">
+    <main className="min-h-screen overflow-x-hidden bg-neutral-950 text-neutral-100">
       <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-2">
@@ -145,7 +145,7 @@ export default function MerchantPage() {
             <div className="text-xs uppercase tracking-wider text-amber-300">
               Vision page
             </div>
-            <p className="mt-2 text-sm text-amber-100/80">
+            <p className="mt-2 break-words text-sm text-amber-100/80">
               This onboarding flow is a prototype showing how the merchant side of agent-native commerce could work. The contract layer, ENS subname allowlist, and policy enforcement are all live (see the <a href="/" className="underline hover:text-amber-100">demo on the home page</a>). Auto-registration and the embeddable button are stubs for the pitch — turning this into a real merchant signup is the obvious next build.
             </p>
           </section>
