@@ -8,7 +8,7 @@ This folder is the long-form explanation of how SafeSpend's on-chain layer works
 
 If you only have a minute, read the [pitch in the top-level README](../../README.md) and [`overview.md`](./overview.md) below. If you have ten minutes, read the three "read first" docs in order. If you have an hour, read everything.
 
-## The eight docs
+## The nine docs
 
 **Read first**
 
@@ -37,7 +37,10 @@ If you only have a minute, read the [pitch in the top-level README](../../README
 7. **[adr-0001-v1-design.md](./adr-0001-v1-design.md)** — *Architecture Decision Record.*
    Ten load-bearing decisions (single-token, one-agent, no-admin, CEI, etc.) with the alternatives we considered and the trade-offs we chose.
 
-8. **[glossary.md](./glossary.md)** — *Words used in this codebase, defined.*
+8. **[v2-wishlist.md](./v2-wishlist.md)** — *Prompt-injection coverage and where the friction lives.*
+   Honest answer to *"what about other prompt injection attacks?"* Fourteen attack types with v1's outcome for each, the friction critique of the merchant allowlist, and concrete v2 directions that address each gap.
+
+9. **[glossary.md](./glossary.md)** — *Words used in this codebase, defined.*
    Depositor, agent, merchant, listing hash, policy version, allowlist, reason code — concise definitions so the rest of the docs read smoothly even if you haven't touched Solidity in a while.
 
 ## Source files referenced throughout
