@@ -61,7 +61,7 @@ export default function MerchantPage() {
         </section>
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          <section className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 sm:p-6">
+          <section className="min-w-0 rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 sm:p-6">
             <div className="mb-4 flex items-center gap-3">
               <Step n={1} />
               <h2 className="text-base font-semibold sm:text-lg">Business details</h2>
@@ -97,7 +97,7 @@ export default function MerchantPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 sm:p-6">
+          <section className="min-w-0 rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 sm:p-6">
             <div className="mb-4 flex items-center gap-3">
               <Step n={2} />
               <h2 className="text-base font-semibold sm:text-lg">Your ENS identity</h2>
@@ -126,7 +126,7 @@ export default function MerchantPage() {
             </p>
           </section>
 
-          <section className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 sm:p-6 lg:col-span-2">
+          <section className="min-w-0 rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 sm:p-6 lg:col-span-2">
             <div className="mb-4 flex items-center gap-3">
               <Step n={3} />
               <h2 className="text-base font-semibold sm:text-lg">
@@ -136,12 +136,12 @@ export default function MerchantPage() {
             <p className="mb-3 text-sm text-neutral-400">
               Drop this snippet anywhere your existing checkout lives. Customer agents will see your verified ENS identity and route through their owner&rsquo;s SafeSpend policy.
             </p>
-            <pre className="overflow-x-auto rounded-md border border-neutral-800 bg-neutral-950 p-3 text-[11px] leading-relaxed text-neutral-300 sm:p-4 sm:text-xs">
+            <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-neutral-800 bg-neutral-950 p-3 text-[11px] leading-relaxed text-neutral-300 sm:whitespace-pre sm:break-normal sm:p-4 sm:text-xs">
               <code>{embedCode}</code>
             </pre>
           </section>
 
-          <section className="rounded-lg border border-amber-700/40 bg-amber-950/20 p-4 sm:p-6 lg:col-span-2">
+          <section className="min-w-0 rounded-lg border border-amber-700/40 bg-amber-950/20 p-4 sm:p-6 lg:col-span-2">
             <div className="text-xs uppercase tracking-wider text-amber-300">
               Vision page
             </div>

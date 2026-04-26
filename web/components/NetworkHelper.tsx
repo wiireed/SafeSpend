@@ -81,47 +81,44 @@ export function NetworkHelper() {
         );
       });
     } catch (switchErr) {
-      // Fallback for the case where the wallet supports the chain ID
-      // but doesn't have it added to its network list. Only applies
-      // to injected providers — WalletConnect's MetaMask app will
-      // typically prompt to add the chain itself, so we don't need
-      // to call wallet_addEthereumChain via the relay.
-      const code = (switchErr as { code?: number })?.code;
-      const isUnrecognised = code === 4902 || code === -32603;
+      // For injected providers we always retry via wallet_addEthereumChain.
+      // It's idempotent (MetaMask switches if the chain is already added,
+      // adds + switches if not) and forces a fresh prompt — useful when
+      // the original switch returned silently because the popup was
+      // suppressed or queued behind another pending notification.
       const isInjected = connector?.id === "injected";
+      const eth = isInjected ? getEthereum() : undefined;
 
-      if (isUnrecognised && isInjected) {
-        const eth = getEthereum();
-        if (eth) {
-          try {
-            await eth.request({
-              method: "wallet_addEthereumChain",
-              params: [
-                {
-                  chainId: expected.hex,
-                  chainName: expected.name,
-                  nativeCurrency: expected.nativeCurrency,
-                  rpcUrls: expected.rpcUrls,
-                  blockExplorerUrls: expected.blockExplorerUrls ?? [],
-                },
-              ],
-            });
-            setBusy(false);
-            return;
-          } catch (addErr) {
-            setError(
-              (addErr as { message?: string })?.message ??
-                `Failed to add ${expected.name}.`,
-            );
-            setBusy(false);
-            return;
-          }
+      if (eth) {
+        try {
+          await eth.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: expected.hex,
+                chainName: expected.name,
+                nativeCurrency: expected.nativeCurrency,
+                rpcUrls: expected.rpcUrls,
+                blockExplorerUrls: expected.blockExplorerUrls ?? [],
+              },
+            ],
+          });
+          setBusy(false);
+          return;
+        } catch (addErr) {
+          setError(
+            humaniseSwitchError(addErr) ??
+              humaniseSwitchError(switchErr) ??
+              `Failed to add ${expected.name}. Open the MetaMask extension and check for a pending request.`,
+          );
+          setBusy(false);
+          return;
         }
       }
 
       setError(
-        (switchErr as { message?: string })?.message ??
-          "Failed to switch network.",
+        humaniseSwitchError(switchErr) ??
+          "Failed to switch network. Open the MetaMask extension and check for a pending request.",
       );
     } finally {
       setBusy(false);
@@ -156,4 +153,17 @@ export function NetworkHelper() {
       {error && <div className="mt-2 text-xs text-rose-400">{error}</div>}
     </div>
   );
+}
+
+function humaniseSwitchError(err: unknown): string | null {
+  if (!err) return null;
+  const code = (err as { code?: number }).code;
+  const message = (err as { message?: string }).message;
+  // Code 4001 = explicit user rejection. Some wallets also return this
+  // when the popup is queued and silently dismissed, so we hint at the
+  // common cause rather than blaming the user.
+  if (code === 4001) {
+    return "The wallet didn't show a prompt. Click the MetaMask extension icon to clear any pending request, then try again.";
+  }
+  return message ?? null;
 }
