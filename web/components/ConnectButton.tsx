@@ -22,9 +22,11 @@ export function ConnectButton() {
     return (
       <button
         onClick={() => disconnect()}
-        className="rounded-md bg-neutral-800 px-3 py-1.5 text-sm hover:bg-neutral-700"
+        className="whitespace-nowrap rounded-md bg-neutral-800 px-3 py-1.5 text-sm hover:bg-neutral-700"
+        title="Disconnect"
       >
-        {shortAddress(address)} · disconnect
+        {shortAddress(address)}
+        <span className="hidden sm:inline"> · disconnect</span>
       </button>
     );
   }

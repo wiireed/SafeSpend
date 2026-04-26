@@ -44,7 +44,8 @@ export function TopBar() {
             <span
               className={`ml-1 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide sm:ml-2 ${chainLabel.className}`}
             >
-              {chainLabel.text}
+              <span className="sm:hidden">{chainLabel.shortText}</span>
+              <span className="hidden sm:inline">{chainLabel.text}</span>
             </span>
           )}
         </div>
@@ -78,15 +79,17 @@ export function TopBar() {
 
 function chainLabelFor(
   chainId: number,
-): { text: string; className: string } | null {
+): { text: string; shortText: string; className: string } | null {
   if (chainId === 43113)
     return {
       text: "Avalanche Fuji",
+      shortText: "Fuji",
       className: "bg-rose-900/40 text-rose-300 border border-rose-800/60",
     };
   if (chainId === 31337)
     return {
       text: "Local Anvil",
+      shortText: "Anvil",
       className: "bg-neutral-800 text-neutral-400 border border-neutral-700",
     };
   return null;
