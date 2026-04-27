@@ -11,7 +11,7 @@
 # What it does:
 #   1. forge script Deploy.s.sol --broadcast against Fuji
 #   2. parses MockUSDC + PolicyVault addresses from the broadcast artifact
-#   3. rewrites packages/sdk/src/addresses.ts for chain 43113
+#   3. rewrites packages/contracts/src/addresses.ts for chain 43113
 #   4. prints the explorer URLs and the next-step command list
 #
 # Run from the repo root: bash scripts/deploy-fuji.sh

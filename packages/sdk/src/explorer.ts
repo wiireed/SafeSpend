@@ -1,4 +1,6 @@
-export type SupportedChainId = 31337 | 43113;
+import type { SupportedChainId } from "@safespend/contracts/addresses";
+
+export type { SupportedChainId };
 
 const EXPLORERS: Record<number, string | null> = {
   31337: null,

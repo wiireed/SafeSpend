@@ -11,9 +11,9 @@ broadcast/
 *.tsbuildinfo
 
 # Foundry
-contracts/cache/
-contracts/out/
-contracts/broadcast/
+packages/contracts/cache/
+packages/contracts/out/
+packages/contracts/broadcast/
 
 # Env
 .env

@@ -1,6 +1,6 @@
-/// Inline typed ABI fragments for the calls the agent makes. Smaller and
-/// better-typed than importing the full JSON; the JSON ABIs in
-/// packages/sdk/abis are still the source of truth for the web frontend.
+/// Inline typed ABI fragments — preferred for type-safe viem calls.
+/// The full JSON ABIs at ./abis/*.json mirror the same contracts and are
+/// what the web frontend imports for runtime use (e.g. event decoding).
 
 export const policyVaultAbi = [
   {
