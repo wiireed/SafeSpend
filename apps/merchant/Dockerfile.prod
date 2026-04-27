@@ -2,7 +2,7 @@
 ###
 ### Build from the repo root (so the monorepo workspace files are in context):
 ###   docker buildx build --platform linux/amd64 \
-###     -f web/Dockerfile.prod -t safespend-web:v1 .
+###     -f apps/merchant/Dockerfile.prod -t safespend-merchant:v1 .
 ###
 ### Runtime env vars are injected by App Runner; do NOT bake secrets here.
 ### NEXT_PUBLIC_* vars are baked at build time, so pass them as --build-arg
@@ -15,8 +15,8 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 # Copy only manifests first so docker layer cache survives source changes.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-COPY web/package.json ./web/
-COPY agent/package.json ./agent/
+COPY apps/merchant/package.json ./apps/merchant/
+COPY apps/agent/package.json ./apps/agent/
 COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/sdk/package.json ./packages/sdk/
 
@@ -29,8 +29,8 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 # Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/web/node_modules ./web/node_modules
-COPY --from=deps /app/agent/node_modules ./agent/node_modules
+COPY --from=deps /app/apps/merchant/node_modules ./apps/merchant/node_modules
+COPY --from=deps /app/apps/agent/node_modules ./apps/agent/node_modules
 COPY --from=deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
 COPY --from=deps /app/packages/sdk/node_modules ./packages/sdk/node_modules
 
@@ -38,8 +38,8 @@ COPY --from=deps /app/packages/sdk/node_modules ./packages/sdk/node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/contracts ./packages/contracts
 COPY packages/sdk ./packages/sdk
-COPY agent ./agent
-COPY web ./web
+COPY apps/agent ./apps/agent
+COPY apps/merchant ./apps/merchant
 
 # Public env vars are baked at build time.
 ARG NEXT_PUBLIC_CHAIN_ID
@@ -54,7 +54,7 @@ ENV NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-RUN pnpm -F @safespend/web build
+RUN pnpm -F @safespend/merchant build
 
 # ---------- Stage 3: runner ----------
 FROM node:20-alpine AS runner
@@ -70,15 +70,16 @@ RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
 # Copy the standalone output. Next places the workspace at
-# /app/web/.next/standalone (because outputFileTracingRoot is the repo root).
-COPY --from=builder --chown=nextjs:nodejs /app/web/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/web/.next/static ./web/.next/static
-# (no web/public dir in this project — Next.js doesn't require one when there
-#  are no static assets. If you add one later, also add:
-#    COPY --from=builder --chown=nextjs:nodejs /app/web/public ./web/public)
+# /app/apps/merchant/.next/standalone (because outputFileTracingRoot is the
+# repo root).
+COPY --from=builder --chown=nextjs:nodejs /app/apps/merchant/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/merchant/.next/static ./apps/merchant/.next/static
+# (no apps/merchant/public dir in this project — Next.js doesn't require one
+#  when there are no static assets. If you add one later, also add:
+#    COPY --from=builder --chown=nextjs:nodejs /app/apps/merchant/public ./apps/merchant/public)
 # Listings JSON is read at runtime by the agent's searchListings tool;
 # next's tracer should pull it in but we copy explicitly to be safe.
-COPY --from=builder --chown=nextjs:nodejs /app/agent/src/listings.json ./agent/src/listings.json
+COPY --from=builder --chown=nextjs:nodejs /app/apps/agent/src/listings.json ./apps/agent/src/listings.json
 
 USER nextjs
 EXPOSE 3000
@@ -87,4 +88,4 @@ EXPOSE 3000
 # auto-injects its own HOSTNAME — Next.js standalone reads HOSTNAME and binds
 # only to that interface, so an injected compute.internal value would make
 # the container unreachable behind a load balancer.
-CMD ["sh", "-c", "HOSTNAME=0.0.0.0 node web/server.js"]
+CMD ["sh", "-c", "HOSTNAME=0.0.0.0 node apps/merchant/server.js"]

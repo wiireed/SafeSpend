@@ -39,4 +39,4 @@ Thumbs.db
 *.swo
 
 # Agent run logs
-agent/.runs/
+apps/agent/.runs/
