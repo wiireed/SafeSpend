@@ -1,6 +1,6 @@
 /// localStorage helpers for persisting agent runs in the browser.
 
-import type { RunEvent } from "@safespend/agent";
+import type { RunEvent } from "@safespend/agent-core";
 
 const KEY = "safespend.runs.v1";
 

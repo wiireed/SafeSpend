@@ -11,7 +11,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@safespend/agent": "workspace:*",
+    "@safespend/agent-core": "workspace:*",
     "@safespend/contracts": "workspace:*",
     "@safespend/sdk": "workspace:*",
     "@tanstack/react-query": "^5.62.16",
