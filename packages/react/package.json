@@ -1,0 +1,31 @@
+{
+  "name": "@safespend/react",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@safespend/contracts": "workspace:*",
+    "@safespend/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19",
+    "viem": "^2",
+    "wagmi": "^2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.2",
+    "react": "19.0.0",
+    "typescript": "^5.6.3",
+    "viem": "^2.21.54",
+    "wagmi": "^2.14.6"
+  }
+}
