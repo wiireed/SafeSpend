@@ -19,6 +19,7 @@ COPY apps/merchant/package.json ./apps/merchant/
 COPY apps/agent/package.json ./apps/agent/
 COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/sdk/package.json ./packages/sdk/
+COPY packages/react/package.json ./packages/react/
 COPY packages/agent-core/package.json ./packages/agent-core/
 
 RUN pnpm install --frozen-lockfile --prefer-offline
@@ -34,12 +35,14 @@ COPY --from=deps /app/apps/merchant/node_modules ./apps/merchant/node_modules
 COPY --from=deps /app/apps/agent/node_modules ./apps/agent/node_modules
 COPY --from=deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
 COPY --from=deps /app/packages/sdk/node_modules ./packages/sdk/node_modules
+COPY --from=deps /app/packages/react/node_modules ./packages/react/node_modules
 COPY --from=deps /app/packages/agent-core/node_modules ./packages/agent-core/node_modules
 
 # Now copy sources
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/contracts ./packages/contracts
 COPY packages/sdk ./packages/sdk
+COPY packages/react ./packages/react
 COPY packages/agent-core ./packages/agent-core
 COPY apps/agent ./apps/agent
 COPY apps/merchant ./apps/merchant

@@ -12,6 +12,7 @@ const nextConfig = {
   transpilePackages: [
     "@safespend/contracts",
     "@safespend/sdk",
+    "@safespend/react",
     "@safespend/agent-core",
   ],
   serverExternalPackages: ["openai", "@anthropic-ai/sdk"],

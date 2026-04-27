@@ -1,72 +1,36 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 import type { RunEvent } from "@safespend/agent-core";
+import { useAgentRun } from "@safespend/react";
 import { saveRun } from "@/lib/runs";
 
 export type RunMode = "safe" | "vulnerable";
 
-type Status = "idle" | "running" | "done" | "error";
-
 export function RunPanel({ mode, title, accent }: { mode: RunMode; title: string; accent: "emerald" | "rose" }) {
   const { address } = useAccount();
-  const [events, setEvents] = useState<RunEvent[]>([]);
-  const [status, setStatus] = useState<Status>("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [runId, setRunId] = useState<string | null>(null);
-  const sourceRef = useRef<EventSource | null>(null);
 
-  useEffect(() => () => sourceRef.current?.close(), []);
+  const { start, events, status, error } = useAgentRun<RunEvent>({
+    buildUrl: () => `/api/run?mode=${mode}&user=${address}`,
+    onDone: ({ events: all, done }) => {
+      if (done.kind !== "done") return;
+      saveRun({
+        runId: done.runId,
+        mode,
+        startedAt: new Date().toISOString(),
+        events: all,
+      });
+    },
+  });
 
-  const start = () => {
-    if (!address) return;
-    setEvents([]);
-    setError(null);
-    setRunId(null);
-    setStatus("running");
-
-    const startedAt = new Date().toISOString();
-    const url = `/api/run?mode=${mode}&user=${address}`;
-    const source = new EventSource(url);
-    sourceRef.current = source;
-    const collected: RunEvent[] = [];
-
-    source.onmessage = (msg) => {
-      try {
-        const payload = JSON.parse(msg.data);
-        if (payload.kind === "done") {
-          setStatus("done");
-          setRunId(payload.runId);
-          saveRun({
-            runId: payload.runId,
-            mode,
-            startedAt,
-            events: collected,
-          });
-          source.close();
-          return;
-        }
-        if (payload.kind === "fatal") {
-          setStatus("error");
-          setError(payload.message);
-          source.close();
-          return;
-        }
-        collected.push(payload as RunEvent);
-        setEvents((prev) => [...prev, payload as RunEvent]);
-      } catch {
-        /* ignore parse errors */
-      }
-    };
-    source.onerror = () => {
-      if (status === "running") {
-        setStatus("error");
-        setError("connection lost");
-      }
-      source.close();
-    };
-  };
+  const lastDone =
+    status === "done"
+      ? (events.find((e) => e.kind === "done") ??
+        // The done event is excluded from the public events list above by the
+        // hook's contract — we read it from the saved run instead. For the
+        // status badge we just need its presence.
+        null)
+      : null;
 
   const accentClass =
     accent === "emerald"
@@ -112,10 +76,8 @@ export function RunPanel({ mode, title, accent }: { mode: RunMode; title: string
             <EventLine event={e} />
           </div>
         ))}
-        {status === "done" && runId && (
-          <div className="pt-2 text-neutral-500">
-            done · runId {runId.slice(0, 14)}…
-          </div>
+        {status === "done" && lastDone === null && (
+          <div className="pt-2 text-neutral-500">done</div>
         )}
         {status === "error" && error && (
           <div className="pt-2 text-rose-400">error: {error}</div>
@@ -170,6 +132,8 @@ function EventLine({ event }: { event: RunEvent }) {
       );
     case "rounds_exceeded":
       return <div className="text-rose-400">[exit] rounds exceeded</div>;
+    case "done":
+      return null; // intercepted by the hook before reaching the events list
   }
 }
 

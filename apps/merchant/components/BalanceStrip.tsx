@@ -1,7 +1,8 @@
 "use client";
 
-import { useChainId, useReadContracts } from "wagmi";
-import { mockUsdcAbi, ADDRESSES, ANVIL_ACCOUNTS } from "@/lib/contracts";
+import { useChainId } from "wagmi";
+import { useVaultBalances } from "@safespend/react";
+import { ADDRESSES, ANVIL_ACCOUNTS } from "@/lib/contracts";
 import { MERCHANT_ENS } from "@/lib/merchants";
 import { formatUsdc, shortAddress } from "@/lib/format";
 
@@ -22,21 +23,16 @@ export function BalanceStrip() {
     Boolean,
   ) as `0x${string}`[];
 
-  const { data } = useReadContracts({
-    contracts: targets.map((t) => ({
-      address: addrs?.usdc,
-      abi: mockUsdcAbi,
-      functionName: "balanceOf",
-      args: [t],
-    })),
-    query: { enabled: !!addrs, refetchInterval: 3000 },
+  const { balances } = useVaultBalances({
+    usdcAddress: addrs?.usdc,
+    addresses: targets,
   });
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-      {ROLES.map((role, i) => {
+      {ROLES.map((role) => {
         const addr = role.key === "vault" ? addrs?.vault : role.addr;
-        const balance = data?.[i]?.result as bigint | undefined;
+        const balance = addr ? balances.get(addr.toLowerCase()) : undefined;
         const ens = addr ? MERCHANT_ENS[addr.toLowerCase()] : undefined;
         return (
           <div
