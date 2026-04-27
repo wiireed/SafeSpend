@@ -5,7 +5,7 @@
 /// server's process.env only — never sent to the browser.
 
 import type { NextRequest } from "next/server";
-import { runSafeSpendAgent } from "@safespend/agent";
+import { runSafeSpendAgent } from "@safespend/agent-core";
 import { ADDRESSES } from "@safespend/contracts/addresses";
 import type { Hex } from "viem";
 
@@ -57,14 +57,14 @@ export async function GET(req: NextRequest): Promise<Response> {
       };
 
       try {
-        const result = await runSafeSpendAgent({
+        for await (const event of runSafeSpendAgent({
           mode,
           userAddress: user as Hex,
           vaultAddress: addrs.vault,
           usdcAddress: addrs.usdc,
-          onEvent: (e) => send(e),
-        });
-        send({ kind: "done", runId: result.runId, stopReason: result.stopReason });
+        })) {
+          send(event);
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         send({ kind: "fatal", message });

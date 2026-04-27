@@ -1,3 +1,7 @@
+/// LLM loop. Async generator that yields a sequence of `LoopEvent`s as the
+/// model and tools execute. Consumers can plug into any transport (CLI
+/// stdout, SSE, ReadableStream, websockets) by iterating the generator.
+
 import type { Llm, LlmMessage, LlmToolSchema } from "./llm/index.js";
 
 export type AgentRunInput = {
@@ -8,32 +12,26 @@ export type AgentRunInput = {
   toolHandlers: Record<string, (args: unknown) => Promise<string>>;
   maxRounds: number;
   modelTimeoutMs: number;
-  onEvent?: (event: RunEvent) => void;
 };
 
-export type RunEvent =
+export type LoopEvent =
   | { kind: "model_message"; content: string }
   | { kind: "tool_call"; id: string; name: string; arguments: unknown }
   | { kind: "tool_result"; id: string; name: string; result: string }
   | { kind: "tool_error"; id: string; name: string; message: string }
   | { kind: "final"; content: string | null }
-  | { kind: "rounds_exceeded" };
+  | { kind: "rounds_exceeded" }
+  | {
+      kind: "done";
+      rounds: number;
+      stopReason: "stop" | "rounds_exceeded";
+      finalContent: string | null;
+    };
 
-export type AgentRunResult = {
-  transcript: LlmMessage[];
-  events: RunEvent[];
-  finalContent: string | null;
-  rounds: number;
-  stopReason: "stop" | "rounds_exceeded";
-};
-
-export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
-  const { llm, tools, toolHandlers, maxRounds, modelTimeoutMs, onEvent } = input;
-  const events: RunEvent[] = [];
-  const emit = (e: RunEvent) => {
-    events.push(e);
-    onEvent?.(e);
-  };
+export async function* runAgent(
+  input: AgentRunInput,
+): AsyncGenerator<LoopEvent, void, void> {
+  const { llm, tools, toolHandlers, maxRounds, modelTimeoutMs } = input;
 
   const messages: LlmMessage[] = [
     { role: "system", content: input.systemPrompt },
@@ -47,21 +45,18 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
       timeoutMs: modelTimeoutMs,
     });
 
-    if (response.content) emit({ kind: "model_message", content: response.content });
+    if (response.content) yield { kind: "model_message", content: response.content };
 
     if (response.toolCalls.length === 0) {
-      messages.push({
-        role: "assistant",
-        content: response.content ?? "",
-      });
-      emit({ kind: "final", content: response.content });
-      return {
-        transcript: messages,
-        events,
-        finalContent: response.content,
+      messages.push({ role: "assistant", content: response.content ?? "" });
+      yield { kind: "final", content: response.content };
+      yield {
+        kind: "done",
         rounds: round,
         stopReason: "stop",
+        finalContent: response.content,
       };
+      return;
     }
 
     messages.push({
@@ -71,25 +66,25 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
     });
 
     for (const call of response.toolCalls) {
-      emit({
+      yield {
         kind: "tool_call",
         id: call.id,
         name: call.name,
         arguments: call.arguments,
-      });
+      };
       const handler = toolHandlers[call.name];
       let resultStr: string;
       if (!handler) {
         resultStr = JSON.stringify({ error: `unknown_tool: ${call.name}` });
-        emit({ kind: "tool_error", id: call.id, name: call.name, message: resultStr });
+        yield { kind: "tool_error", id: call.id, name: call.name, message: resultStr };
       } else {
         try {
           resultStr = await handler(call.arguments);
-          emit({ kind: "tool_result", id: call.id, name: call.name, result: resultStr });
+          yield { kind: "tool_result", id: call.id, name: call.name, result: resultStr };
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           resultStr = JSON.stringify({ error: "tool_threw", message: msg });
-          emit({ kind: "tool_error", id: call.id, name: call.name, message: msg });
+          yield { kind: "tool_error", id: call.id, name: call.name, message: msg };
         }
       }
       messages.push({
@@ -100,12 +95,11 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
     }
   }
 
-  emit({ kind: "rounds_exceeded" });
-  return {
-    transcript: messages,
-    events,
-    finalContent: null,
+  yield { kind: "rounds_exceeded" };
+  yield {
+    kind: "done",
     rounds: maxRounds,
     stopReason: "rounds_exceeded",
+    finalContent: null,
   };
 }

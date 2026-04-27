@@ -6,10 +6,14 @@ const nextConfig = {
   // copies that.
   output: "standalone",
   // Standalone needs the monorepo root so it traces workspace package files
-  // (contracts, sdk, agent) into the bundle. Without this, the server starts
-  // but imports of @safespend/agent fail at runtime.
+  // (contracts, sdk, agent-core) into the bundle. Without this, the server
+  // starts but imports of @safespend/agent-core fail at runtime.
   outputFileTracingRoot: new URL("../..", import.meta.url).pathname,
-  transpilePackages: ["@safespend/contracts", "@safespend/sdk", "@safespend/agent"],
+  transpilePackages: [
+    "@safespend/contracts",
+    "@safespend/sdk",
+    "@safespend/agent-core",
+  ],
   serverExternalPackages: ["openai", "@anthropic-ai/sdk"],
   webpack: (config) => {
     // Workspace TS sources use NodeNext-style ".js" extensions on relative

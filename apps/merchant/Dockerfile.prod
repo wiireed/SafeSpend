@@ -19,6 +19,7 @@ COPY apps/merchant/package.json ./apps/merchant/
 COPY apps/agent/package.json ./apps/agent/
 COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/sdk/package.json ./packages/sdk/
+COPY packages/agent-core/package.json ./packages/agent-core/
 
 RUN pnpm install --frozen-lockfile --prefer-offline
 
@@ -33,11 +34,13 @@ COPY --from=deps /app/apps/merchant/node_modules ./apps/merchant/node_modules
 COPY --from=deps /app/apps/agent/node_modules ./apps/agent/node_modules
 COPY --from=deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
 COPY --from=deps /app/packages/sdk/node_modules ./packages/sdk/node_modules
+COPY --from=deps /app/packages/agent-core/node_modules ./packages/agent-core/node_modules
 
 # Now copy sources
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/contracts ./packages/contracts
 COPY packages/sdk ./packages/sdk
+COPY packages/agent-core ./packages/agent-core
 COPY apps/agent ./apps/agent
 COPY apps/merchant ./apps/merchant
 
@@ -77,9 +80,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/merchant/.next/static ./apps
 # (no apps/merchant/public dir in this project — Next.js doesn't require one
 #  when there are no static assets. If you add one later, also add:
 #    COPY --from=builder --chown=nextjs:nodejs /app/apps/merchant/public ./apps/merchant/public)
-# Listings JSON is read at runtime by the agent's searchListings tool;
+# Listings JSON is read at runtime by agent-core's mock marketplace tool;
 # next's tracer should pull it in but we copy explicitly to be safe.
-COPY --from=builder --chown=nextjs:nodejs /app/apps/agent/src/listings.json ./apps/agent/src/listings.json
+COPY --from=builder --chown=nextjs:nodejs /app/packages/agent-core/src/listings.json ./packages/agent-core/src/listings.json
 
 USER nextjs
 EXPOSE 3000

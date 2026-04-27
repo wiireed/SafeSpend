@@ -10,27 +10,12 @@ importers:
 
   apps/agent:
     dependencies:
-      '@anthropic-ai/sdk':
-        specifier: ^0.32.1
-        version: 0.32.1
-      '@safespend/contracts':
+      '@safespend/agent-core':
         specifier: workspace:*
-        version: link:../../packages/contracts
-      '@safespend/sdk':
-        specifier: workspace:*
-        version: link:../../packages/sdk
+        version: link:../../packages/agent-core
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
-      openai:
-        specifier: ^4.77.0
-        version: 4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76)
-      viem:
-        specifier: ^2.21.54
-        version: 2.48.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
-      zod:
-        specifier: ^3.23.8
-        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -44,9 +29,9 @@ importers:
 
   apps/merchant:
     dependencies:
-      '@safespend/agent':
+      '@safespend/agent-core':
         specifier: workspace:*
-        version: link:../agent
+        version: link:../../packages/agent-core
       '@safespend/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -90,6 +75,31 @@ importers:
       tailwindcss:
         specifier: ^3.4.17
         version: 3.4.19(tsx@4.21.0)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  packages/agent-core:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.32.1
+        version: 0.32.1
+      '@safespend/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@safespend/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      openai:
+        specifier: ^4.77.0
+        version: 4.104.0(ws@8.18.3(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76)
+      viem:
+        specifier: ^2.21.54
+        version: 2.48.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.17
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
@@ -5596,7 +5606,7 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
-  openai@4.104.0(ws@8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76):
+  openai@4.104.0(ws@8.18.3(bufferutil@4.1.0)(utf-8-validate@5.0.10))(zod@3.25.76):
     dependencies:
       '@types/node': 18.19.130
       '@types/node-fetch': 2.6.13
@@ -5606,7 +5616,7 @@ snapshots:
       formdata-node: 4.4.1
       node-fetch: 2.7.0
     optionalDependencies:
-      ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      ws: 8.18.3(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       zod: 3.25.76
     transitivePeerDependencies:
       - encoding

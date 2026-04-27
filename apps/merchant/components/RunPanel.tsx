@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
-import type { RunEvent } from "@safespend/agent";
+import type { RunEvent } from "@safespend/agent-core";
 import { saveRun } from "@/lib/runs";
 
 export type RunMode = "safe" | "vulnerable";

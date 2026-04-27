@@ -74,6 +74,7 @@ services:
       - agent_node_modules:/app/apps/agent/node_modules
       - contracts_node_modules:/app/packages/contracts/node_modules
       - sdk_node_modules:/app/packages/sdk/node_modules
+      - agent_core_node_modules:/app/packages/agent-core/node_modules
       - pnpm_store:/app/.pnpm-store
     ports:
       - "3000:3000"
@@ -106,4 +107,5 @@ volumes:
   agent_node_modules:
   contracts_node_modules:
   sdk_node_modules:
+  agent_core_node_modules:
   pnpm_store:
