@@ -1,6 +1,6 @@
 /// Inline typed ABI fragments for the calls the agent makes. Smaller and
-/// better-typed than importing the full JSON; the JSON ABIs in shared/abis
-/// are still the source of truth for the web frontend.
+/// better-typed than importing the full JSON; the JSON ABIs in
+/// packages/sdk/abis are still the source of truth for the web frontend.
 
 export const policyVaultAbi = [
   {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/// Rewrite the chain-43113 entry in shared/src/addresses.ts.
+/// Rewrite the chain-43113 entry in packages/sdk/src/addresses.ts.
 ///
 /// Usage:
 ///   node scripts/update-fuji-addresses.mjs <usdc> <vault>
@@ -21,7 +21,7 @@ if (!ADDR.test(usdc) || !ADDR.test(vault)) {
 }
 
 const here = dirname(fileURLToPath(import.meta.url));
-const path = join(here, "..", "shared", "src", "addresses.ts");
+const path = join(here, "..", "packages", "sdk", "src", "addresses.ts");
 
 const src = readFileSync(path, "utf8");
 const pattern = /(43113:\s*\{)[\s\S]*?\}/;

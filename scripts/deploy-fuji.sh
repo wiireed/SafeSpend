@@ -11,7 +11,7 @@
 # What it does:
 #   1. forge script Deploy.s.sol --broadcast against Fuji
 #   2. parses MockUSDC + PolicyVault addresses from the broadcast artifact
-#   3. rewrites shared/src/addresses.ts for chain 43113
+#   3. rewrites packages/sdk/src/addresses.ts for chain 43113
 #   4. prints the explorer URLs and the next-step command list
 #
 # Run from the repo root: bash scripts/deploy-fuji.sh
@@ -30,14 +30,14 @@ fi
 FUJI_RPC_URL="${FUJI_RPC_URL:-https://api.avax-test.network/ext/bc/C/rpc}"
 
 echo "Deploying to Fuji (chain 43113) at $FUJI_RPC_URL"
-forge script "$ROOT/contracts/script/Deploy.s.sol" \
-  --root "$ROOT/contracts" \
+forge script "$ROOT/packages/contracts/script/Deploy.s.sol" \
+  --root "$ROOT/packages/contracts" \
   --rpc-url "$FUJI_RPC_URL" \
   --private-key "$DEPLOYER_PRIVATE_KEY" \
   --broadcast \
   --slow
 
-BROADCAST="$ROOT/contracts/broadcast/Deploy.s.sol/43113/run-latest.json"
+BROADCAST="$ROOT/packages/contracts/broadcast/Deploy.s.sol/43113/run-latest.json"
 if [[ ! -f "$BROADCAST" ]]; then
   echo "expected broadcast artifact at $BROADCAST" >&2
   exit 1

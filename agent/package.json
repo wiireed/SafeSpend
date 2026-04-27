@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
-    "@safespend/shared": "workspace:*",
+    "@safespend/sdk": "workspace:*",
     "dotenv": "^16.4.5",
     "openai": "^4.77.0",
     "viem": "^2.21.54",

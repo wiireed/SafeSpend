@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Extract ABI arrays from forge build output into shared/abis/.
-# Run after `forge build --root contracts`.
+# Extract ABI arrays from forge build output into packages/sdk/abis/.
+# Run after `forge build --root packages/contracts`.
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT="$ROOT/contracts/out"
-DEST="$ROOT/shared/abis"
+OUT="$ROOT/packages/contracts/out"
+DEST="$ROOT/packages/sdk/abis"
 
 mkdir -p "$DEST"
 

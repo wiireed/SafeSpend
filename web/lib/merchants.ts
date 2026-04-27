@@ -7,7 +7,7 @@
 /// Source of truth for the ENS strings is agent/src/listings.json's
 /// `merchantEns` field — keep these in sync after any registration.
 
-import { ANVIL_ACCOUNTS } from "@safespend/shared/addresses";
+import { ANVIL_ACCOUNTS } from "@safespend/sdk/addresses";
 
 export const MERCHANT_ENS: Record<string, string> = {
   [ANVIL_ACCOUNTS.merchantA.toLowerCase()]: "merchant-a.safespend.eth",

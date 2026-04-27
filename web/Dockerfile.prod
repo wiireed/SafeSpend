@@ -17,7 +17,7 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY web/package.json ./web/
 COPY agent/package.json ./agent/
-COPY shared/package.json ./shared/
+COPY packages/sdk/package.json ./packages/sdk/
 
 RUN pnpm install --frozen-lockfile --prefer-offline
 
@@ -30,11 +30,11 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/web/node_modules ./web/node_modules
 COPY --from=deps /app/agent/node_modules ./agent/node_modules
-COPY --from=deps /app/shared/node_modules ./shared/node_modules
+COPY --from=deps /app/packages/sdk/node_modules ./packages/sdk/node_modules
 
 # Now copy sources
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-COPY shared ./shared
+COPY packages/sdk ./packages/sdk
 COPY agent ./agent
 COPY web ./web
 
