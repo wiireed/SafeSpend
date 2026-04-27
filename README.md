@@ -77,23 +77,26 @@ If you want a long-form walkthrough of the on-chain layer — beyond the archite
 
 - **PolicyVault source on Sourcify** ([exact_match](https://repo.sourcify.dev/contracts/full_match/43113/0x15b2B50FCC06CCdE9e80f4393b828F709f4934Ba/))
 - **MockUSDC source on Sourcify** ([exact_match](https://repo.sourcify.dev/contracts/full_match/43113/0x6754C656Fe1CA74C9941f3D9aEaC2d7fd93868e8/))
-- **23 unit tests** covering the full policy matrix (`forge test --root contracts -vv`)
+- **23 unit tests** covering the full policy matrix (`forge test --root packages/contracts -vv`)
 - **safespend.eth on ENS** ([ownership + records](https://app.ens.domains/safespend.eth))
 - **ENS subnames**: [merchant-a](https://app.ens.domains/merchant-a.safespend.eth) · [merchant-b](https://app.ens.domains/merchant-b.safespend.eth)
 
 ## Layout
 
 ```
-contracts/   Foundry project: PolicyVault, MockUSDC, 23 unit tests, deploy/seed scripts
-agent/       TypeScript agent: provider-agnostic LLM adapter (OpenAI/Anthropic), viem, CLI
-web/         Next.js demo UI: onboarding, balance strip, two-lane agent runs, on-chain event feed
-shared/      ABIs, deployed addresses per chain, explorer link helpers, shared TS types
-docs/        Build plan, run walkthrough, Fuji deploy runbook, AWS deploy runbook, demo script, demo recipe, ENS redirect source
+packages/
+  contracts/   Foundry project: PolicyVault, MockUSDC, 23 unit tests, deploy/seed scripts
+  sdk/         ABIs, deployed addresses per chain, explorer link helpers, shared TS types
+agent/         TypeScript agent: provider-agnostic LLM adapter (OpenAI/Anthropic), viem, CLI
+web/           Next.js demo UI: onboarding, balance strip, two-lane agent runs, on-chain event feed
+docs/          Build plan, run walkthrough, Fuji deploy runbook, AWS deploy runbook, demo script, demo recipe, ENS redirect source
 docs/contracts/  Deep-dive on PolicyVault: overview, setPolicy, onboarding flow, guardrails, glossary
-scripts/     Bash helpers for Fuji deploy + seed
+scripts/       Bash helpers for Fuji deploy + seed
 ```
 
-`contracts/` is a Foundry project (Solidity 0.8.24, OpenZeppelin) and is not part of the pnpm workspace. Everything else is.
+The repository is mid-refactor into a reusable component (`@safespend/sdk` + future `@safespend/agent-core` + `@safespend/react`). The hackathon snapshot is preserved on the [`hackathon`](https://github.com/wiireed/SafeSpend/tree/hackathon) branch and the `v0.1.0-hackathon` tag.
+
+`packages/contracts/` is a Foundry project (Solidity 0.8.24, OpenZeppelin) and is not part of the pnpm workspace. Everything else is.
 
 ## Run it locally
 
@@ -112,7 +115,7 @@ docker compose up
 
 ```sh
 pnpm install
-forge install --root contracts
+forge install --root packages/contracts
 pnpm anvil               # one terminal
 pnpm contracts:build     # another terminal
 pnpm contracts:test      # 23 tests, ~1s
@@ -125,7 +128,7 @@ For a public-explorer deployment, see [docs/fuji-deploy.md](docs/fuji-deploy.md)
 
 ```sh
 export DEPLOYER_PRIVATE_KEY=0x...      # Fuji-funded EOA, get free testnet AVAX from Core
-pnpm fuji:deploy                        # auto-rewrites shared/src/addresses.ts:43113
+pnpm fuji:deploy                        # auto-rewrites packages/sdk/src/addresses.ts:43113
 ```
 
 Then walk the onboarding flow in MetaMask on Fuji. ~5 minutes including the faucet wait.

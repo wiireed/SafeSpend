@@ -1,8 +1,8 @@
 /// Re-exports of contract metadata so components import from one place.
 import type { Abi } from "viem";
-import policyVaultAbiJson from "@safespend/shared/abis/PolicyVault.json" with { type: "json" };
-import mockUsdcAbiJson from "@safespend/shared/abis/MockUSDC.json" with { type: "json" };
-import { ADDRESSES, ANVIL_ACCOUNTS } from "@safespend/shared/addresses";
+import policyVaultAbiJson from "@safespend/sdk/abis/PolicyVault.json" with { type: "json" };
+import mockUsdcAbiJson from "@safespend/sdk/abis/MockUSDC.json" with { type: "json" };
+import { ADDRESSES, ANVIL_ACCOUNTS } from "@safespend/sdk/addresses";
 
 export const policyVaultAbi = policyVaultAbiJson as Abi;
 export const mockUsdcAbi = mockUsdcAbiJson as Abi;

@@ -6,7 +6,7 @@
 
 import type { NextRequest } from "next/server";
 import { runSafeSpendAgent } from "@safespend/agent";
-import { ADDRESSES } from "@safespend/shared/addresses";
+import { ADDRESSES } from "@safespend/sdk/addresses";
 import type { Hex } from "viem";
 
 export const runtime = "nodejs";

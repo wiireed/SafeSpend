@@ -6,7 +6,7 @@
 ###   2. docker compose up
 ###   3. Open http://localhost:3000, point MetaMask at http://127.0.0.1:8545
 ###      (chain id 31337), import the user account from
-###      shared/src/addresses.ts:ANVIL_PRIVATE_KEYS.user, walk the onboarding,
+###      packages/sdk/src/addresses.ts:ANVIL_PRIVATE_KEYS.user, walk the onboarding,
 ###      click Run on either agent panel.
 ###
 ### MetaMask still connects to 127.0.0.1:8545 (the host port mapping).
@@ -48,7 +48,7 @@ services:
         set -e
         git config --global --add safe.directory '*'
         git submodule update --init --recursive
-        forge script contracts/script/Deploy.s.sol --root contracts \
+        forge script packages/contracts/script/Deploy.s.sol --root packages/contracts \
           --rpc-url http://anvil:8545 \
           --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
           --broadcast
@@ -72,7 +72,7 @@ services:
       - root_node_modules:/app/node_modules
       - web_node_modules:/app/web/node_modules
       - agent_node_modules:/app/agent/node_modules
-      - shared_node_modules:/app/shared/node_modules
+      - sdk_node_modules:/app/packages/sdk/node_modules
       - pnpm_store:/app/.pnpm-store
     ports:
       - "3000:3000"
@@ -103,5 +103,5 @@ volumes:
   root_node_modules:
   web_node_modules:
   agent_node_modules:
-  shared_node_modules:
+  sdk_node_modules:
   pnpm_store:

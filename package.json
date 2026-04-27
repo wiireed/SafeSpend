@@ -9,9 +9,9 @@
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "build": "pnpm -r build",
-    "contracts:build": "forge build --root contracts",
-    "contracts:test": "forge test --root contracts -vvv",
-    "abis:export": "forge build --root contracts && bash scripts/export-abis.sh",
+    "contracts:build": "forge build --root packages/contracts",
+    "contracts:test": "forge test --root packages/contracts -vvv",
+    "abis:export": "forge build --root packages/contracts && bash scripts/export-abis.sh",
     "anvil": "anvil",
     "fuji:deploy": "bash scripts/deploy-fuji.sh",
     "fuji:seed": "bash scripts/seed-fuji.sh"
