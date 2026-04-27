@@ -85,17 +85,21 @@ If you want a long-form walkthrough of the on-chain layer — beyond the archite
 
 ```
 packages/
-  contracts/   Foundry project + ABIs + deployed addresses per chain (chain-truth layer)
-  sdk/         Framework-agnostic TS surface: types, explorer helpers, re-exports of contract metadata
+  contracts/    Foundry project + ABIs + deployed addresses (chain-truth layer)
+  sdk/          Framework-agnostic vault primitives: viem clients, ENS, spend tx-builder
+  agent-core/   LLM loop + provider adapters + bundled tool wrappers (transport-agnostic)
+  react/        Headless React hooks: useVaultEvents, useVaultBalances, useAgentRun, useEnsLabel
 apps/
-  agent/       TypeScript agent: provider-agnostic LLM adapter (OpenAI/Anthropic), viem, CLI
-  merchant/    Next.js demo UI: onboarding, balance strip, two-lane agent runs, on-chain event feed
-docs/          Build plan, run walkthrough, Fuji deploy runbook, AWS deploy runbook, demo script, demo recipe, ENS redirect source
-docs/contracts/  Deep-dive on PolicyVault: overview, setPolicy, onboarding flow, guardrails, glossary
-scripts/       Bash helpers for Fuji deploy + seed
+  agent/        Reference CLI consumer of @safespend/agent-core
+  merchant/     Reference Next.js app: onboarding, balance strip, two-lane agent runs, event feed
+examples/
+  minimal-agent/  Smallest @safespend/sdk integration — proves framework-agnosticism
+docs/           Build plan, run walkthrough, Fuji + AWS deploy runbooks, components doc, demo recipe
+docs/contracts/ Deep-dive on PolicyVault: overview, setPolicy, onboarding, guardrails, glossary
+scripts/        Bash helpers for Fuji deploy + seed
 ```
 
-The repository is mid-refactor into a reusable component (`@safespend/sdk` + future `@safespend/agent-core` + `@safespend/react`). The hackathon snapshot is preserved on the [`hackathon`](https://github.com/wiireed/SafeSpend/tree/hackathon) branch and the `v0.1.0-hackathon` tag.
+The hackathon submission is preserved on the [`hackathon`](https://github.com/wiireed/SafeSpend/tree/hackathon) branch and the [`v0.1.0-hackathon`](https://github.com/wiireed/SafeSpend/releases/tag/v0.1.0-hackathon) tag (commit `9c887fb`). Everything on `main` since then is the component refactor — same contracts, same UX, supporting code split into the four packages above.
 
 `packages/contracts/` is a Foundry project (Solidity 0.8.24, OpenZeppelin) and is not part of the pnpm workspace. Everything else is.
 
@@ -136,11 +140,38 @@ Then walk the onboarding flow in MetaMask on Fuji. ~5 minutes including the fauc
 
 ## Deploy to AWS
 
-For the production deployment we shipped to App Runner, see [docs/aws-deploy.md](docs/aws-deploy.md). The Dockerfile is at [web/Dockerfile.prod](web/Dockerfile.prod); the deploy is a one-time ECR push + App Runner service create, with redeploys via `aws apprunner start-deployment`.
+For the production deployment we shipped to App Runner, see [docs/aws-deploy.md](docs/aws-deploy.md). The Dockerfile is at [apps/merchant/Dockerfile.prod](apps/merchant/Dockerfile.prod); the deploy is a one-time ECR push + App Runner service create, with redeploys via `aws apprunner start-deployment`.
 
 ## LLM provider
 
 Provider-agnostic adapter, default OpenAI with `gpt-4o-mini`. Set `LLM_PROVIDER=anthropic` in `.env` to switch to Claude. See `.env.example`.
+
+## Use SafeSpend in your project
+
+The repository is split into reusable packages so you can adopt the safe-spend pattern without copy-pasting from the demo. See **[docs/components.md](docs/components.md)** for the full architecture, integration recipes, and surface-guard explanations.
+
+| You want… | Use |
+|---|---|
+| Server-side vault calls (no UI) | [`@safespend/sdk`](packages/sdk/) — viem only, no React, no LLM |
+| React hooks for event feeds, balances, agent runs | [`@safespend/react`](packages/react/) — peer deps only |
+| A turnkey LLM agent that drives the vault | [`@safespend/agent-core`](packages/agent-core/) — transport-agnostic async iterator |
+| To deploy the vault on a new chain | [`@safespend/contracts`](packages/contracts/) — Foundry project + ABIs |
+
+Smallest possible integration:
+
+```ts
+import { createVaultClient, computeListingHash, proposePurchase } from "@safespend/sdk";
+
+const clients = createVaultClient({ chainId, rpcUrl, privateKey });
+const result = await proposePurchase({
+  clients, vaultAddress, userAddress, merchant,
+  amount: 5_000_000n,
+  listingHash: computeListingHash({ merchant, amount: 5_000_000n, listingId: "abc" }),
+});
+// result.status: "approved" | "rejected" | "reverted" | "no_event"
+```
+
+Runnable version: [`examples/minimal-agent/`](examples/minimal-agent/).
 
 ## Pitch in 30 seconds
 
