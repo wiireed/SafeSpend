@@ -6,7 +6,7 @@
 ###   2. docker compose up
 ###   3. Open http://localhost:3000, point MetaMask at http://127.0.0.1:8545
 ###      (chain id 31337), import the user account from
-###      packages/sdk/src/addresses.ts:ANVIL_PRIVATE_KEYS.user, walk the onboarding,
+###      apps/merchant/lib/anvil.ts:ANVIL_PRIVATE_KEYS.user, walk the onboarding,
 ###      click Run on either agent panel.
 ###
 ### MetaMask still connects to 127.0.0.1:8545 (the host port mapping).
@@ -70,8 +70,8 @@ services:
       ### succeed; otherwise pnpm puts the store inside the bind mount
       ### and hits cross-filesystem copy races on macOS.
       - root_node_modules:/app/node_modules
-      - web_node_modules:/app/web/node_modules
-      - agent_node_modules:/app/agent/node_modules
+      - merchant_node_modules:/app/apps/merchant/node_modules
+      - agent_node_modules:/app/apps/agent/node_modules
       - contracts_node_modules:/app/packages/contracts/node_modules
       - sdk_node_modules:/app/packages/sdk/node_modules
       - pnpm_store:/app/.pnpm-store
@@ -98,11 +98,11 @@ services:
         set -e
         corepack enable
         pnpm install --frozen-lockfile
-        pnpm -F @safespend/web exec next dev -H 0.0.0.0
+        pnpm -F @safespend/merchant exec next dev -H 0.0.0.0
 
 volumes:
   root_node_modules:
-  web_node_modules:
+  merchant_node_modules:
   agent_node_modules:
   contracts_node_modules:
   sdk_node_modules:

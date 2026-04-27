@@ -2,12 +2,13 @@
 const nextConfig = {
   reactStrictMode: true,
   // standalone build emits a self-contained server.js + minimal node_modules
-  // tree under web/.next/standalone. The production Dockerfile copies that.
+  // tree under apps/merchant/.next/standalone. The production Dockerfile
+  // copies that.
   output: "standalone",
   // Standalone needs the monorepo root so it traces workspace package files
   // (contracts, sdk, agent) into the bundle. Without this, the server starts
   // but imports of @safespend/agent fail at runtime.
-  outputFileTracingRoot: new URL("..", import.meta.url).pathname,
+  outputFileTracingRoot: new URL("../..", import.meta.url).pathname,
   transpilePackages: ["@safespend/contracts", "@safespend/sdk", "@safespend/agent"],
   serverExternalPackages: ["openai", "@anthropic-ai/sdk"],
   webpack: (config) => {

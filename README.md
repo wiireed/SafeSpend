@@ -85,10 +85,11 @@ If you want a long-form walkthrough of the on-chain layer — beyond the archite
 
 ```
 packages/
-  contracts/   Foundry project: PolicyVault, MockUSDC, 23 unit tests, deploy/seed scripts
-  sdk/         ABIs, deployed addresses per chain, explorer link helpers, shared TS types
-agent/         TypeScript agent: provider-agnostic LLM adapter (OpenAI/Anthropic), viem, CLI
-web/           Next.js demo UI: onboarding, balance strip, two-lane agent runs, on-chain event feed
+  contracts/   Foundry project + ABIs + deployed addresses per chain (chain-truth layer)
+  sdk/         Framework-agnostic TS surface: types, explorer helpers, re-exports of contract metadata
+apps/
+  agent/       TypeScript agent: provider-agnostic LLM adapter (OpenAI/Anthropic), viem, CLI
+  merchant/    Next.js demo UI: onboarding, balance strip, two-lane agent runs, on-chain event feed
 docs/          Build plan, run walkthrough, Fuji deploy runbook, AWS deploy runbook, demo script, demo recipe, ENS redirect source
 docs/contracts/  Deep-dive on PolicyVault: overview, setPolicy, onboarding flow, guardrails, glossary
 scripts/       Bash helpers for Fuji deploy + seed
