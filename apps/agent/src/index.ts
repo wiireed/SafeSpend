@@ -13,8 +13,9 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Hex } from "viem";
 
+import { createVaultClient } from "@safespend/sdk/chain";
+
 import { makeLlm } from "./llm/index.js";
-import { makeChainClients } from "./chain.js";
 import { runAgent, type RunEvent } from "./agent.js";
 
 export type { RunEvent } from "./agent.js";
@@ -68,7 +69,7 @@ export async function runSafeSpendAgent(
   const vaultAddress = (args.vaultAddress ?? requireEnv("VAULT_ADDRESS")) as Hex;
   const usdcAddress = (args.usdcAddress ?? requireEnv("USDC_ADDRESS")) as Hex;
 
-  const clients = makeChainClients({ chainId, rpcUrl, privateKey });
+  const clients = createVaultClient({ chainId, rpcUrl, privateKey });
   const llm = makeLlm();
 
   const result = await runAgent({

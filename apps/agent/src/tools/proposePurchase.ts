@@ -1,8 +1,18 @@
-import { isAddress, getAddress, decodeEventLog, type Hex } from "viem";
+/// LLM tool wrapper around the SDK's safe-spend primitive. Validates raw
+/// LLM-supplied arguments, resolves ENS where needed, and routes to either
+/// the SDK's proposePurchase (safe path) or a direct MockUSDC.transfer
+/// (vulnerable path — kept here intentionally as the anti-pattern half of
+/// the dual-lane demo).
+
+import { isAddress, getAddress, type Hex } from "viem";
+import {
+  computeListingHash,
+  type VaultClients,
+} from "@safespend/sdk/chain";
+import { resolveEns } from "@safespend/sdk/ens";
+import { proposePurchase as proposePurchaseSafe } from "@safespend/sdk/spend";
+import { mockUsdcAbi } from "@safespend/contracts/abi";
 import type { LlmToolSchema } from "../llm/index.js";
-import { listingHash, type ChainClients } from "../chain.js";
-import { policyVaultAbi, mockUsdcAbi } from "@safespend/contracts/abi";
-import { resolveEns } from "../ens.js";
 
 export const proposePurchaseSchema: LlmToolSchema = {
   name: "proposePurchase",
@@ -32,7 +42,7 @@ export type ProposePurchaseMode = "safe" | "vulnerable";
 
 export type ProposePurchaseDeps = {
   mode: ProposePurchaseMode;
-  clients: ChainClients;
+  clients: VaultClients;
   vaultAddress: Hex;
   usdcAddress: Hex;
   userAddress: Hex;
@@ -42,18 +52,18 @@ export async function proposePurchase(
   args: { merchant: string; amount: string; listingId: string },
   deps: ProposePurchaseDeps,
 ): Promise<string> {
-  // ---- Input validation (hard guardrails per spec) ----
   if (typeof args.merchant !== "string" || args.merchant.length === 0) {
     return JSON.stringify({ ok: false, error: "invalid_merchant" });
   }
 
-  // Resolve ENS names to addresses. Hex addresses pass through unchanged.
   let merchant: Hex;
   let merchantEns: string | undefined;
   if (isAddress(args.merchant)) {
     merchant = getAddress(args.merchant);
   } else if (args.merchant.includes(".") && !args.merchant.startsWith("0x")) {
-    const resolved = await resolveEns(args.merchant);
+    const resolved = await resolveEns(args.merchant, {
+      rpcUrl: process.env.MAINNET_RPC_URL,
+    });
     if (!resolved) {
       return JSON.stringify({
         ok: false,
@@ -86,107 +96,49 @@ export async function proposePurchase(
     return JSON.stringify({ ok: false, error: "listing_id_required" });
   }
 
-  const hash = listingHash(merchant, amount, args.listingId);
+  const listingHash = computeListingHash({ merchant, amount, listingId: args.listingId });
 
   if (deps.mode === "vulnerable") {
-    return await runVulnerable({ ...deps, merchant, amount, merchantEns });
+    return runVulnerable({ ...deps, merchant, amount, merchantEns });
   }
-  return await runSafe({ ...deps, merchant, amount, hash, merchantEns });
+
+  const result = await proposePurchaseSafe({
+    clients: deps.clients,
+    vaultAddress: deps.vaultAddress,
+    userAddress: deps.userAddress,
+    merchant,
+    amount,
+    listingHash,
+  });
+
+  return JSON.stringify(formatSafeResult(result, { merchant, merchantEns, amount }));
 }
 
-// -------------- Safe path: PolicyVault.tryProposePurchase --------------
-
-async function runSafe(p: {
-  clients: ChainClients;
-  vaultAddress: Hex;
-  userAddress: Hex;
-  merchant: Hex;
-  merchantEns?: string;
-  amount: bigint;
-  hash: Hex;
-}): Promise<string> {
-  const { clients, vaultAddress, userAddress, merchant, merchantEns, amount, hash } = p;
-  const account = clients.account;
-  // Simulate first to surface UnauthorizedAgent (a hard revert) without
-  // burning gas; expected rejections stay within the call as events.
-  try {
-    await clients.publicClient.simulateContract({
-      address: vaultAddress,
-      abi: policyVaultAbi,
-      functionName: "tryProposePurchase",
-      args: [userAddress, merchant, amount, hash],
-      account,
-    });
-  } catch (err) {
-    return JSON.stringify({
-      ok: false,
-      error: "vault_reverted",
-      detail: errMsg(err),
-    });
-  }
-
-  const txHash = await clients.walletClient.writeContract({
-    address: vaultAddress,
-    abi: policyVaultAbi,
-    functionName: "tryProposePurchase",
-    args: [userAddress, merchant, amount, hash],
-    account,
-    chain: clients.chain,
-  });
-
-  const receipt = await clients.publicClient.waitForTransactionReceipt({
-    hash: txHash,
-    timeout: 30_000,
-  });
-
-  // Decode the Approved/Rejected event from the receipt logs.
-  for (const log of receipt.logs) {
-    if (log.address.toLowerCase() !== vaultAddress.toLowerCase()) continue;
-    try {
-      const decoded = decodeEventLog({
-        abi: policyVaultAbi,
-        data: log.data,
-        topics: log.topics,
-      });
-      if (decoded.eventName === "PurchaseApproved") {
-        return JSON.stringify({
-          ok: true,
-          mode: "safe",
-          status: "approved",
-          merchant,
-          merchantEns,
-          amount: amount.toString(),
-          txHash,
-        });
-      }
-      if (decoded.eventName === "PurchaseRejected") {
-        return JSON.stringify({
-          ok: false,
-          mode: "safe",
-          status: "rejected",
-          reason: decoded.args.reason,
-          merchant,
-          merchantEns,
-          amount: amount.toString(),
-          txHash,
-        });
-      }
-    } catch {
-      // not one of our events
-    }
-  }
-  return JSON.stringify({
-    ok: false,
-    mode: "safe",
-    status: "no_event",
-    txHash,
-  });
+function formatSafeResult(
+  result: Awaited<ReturnType<typeof proposePurchaseSafe>>,
+  ctx: { merchant: Hex; merchantEns?: string; amount: bigint },
+): Record<string, unknown> {
+  const base = {
+    mode: "safe" as const,
+    merchant: ctx.merchant,
+    merchantEns: ctx.merchantEns,
+    amount: ctx.amount.toString(),
+  };
+  if (result.status === "approved") return { ok: true, status: "approved", ...base, txHash: result.txHash };
+  if (result.status === "rejected")
+    return { ok: false, status: "rejected", reason: result.reason, ...base, txHash: result.txHash };
+  if (result.status === "reverted")
+    return { ok: false, error: "vault_reverted", detail: result.detail };
+  return { ok: false, status: "no_event", ...base, txHash: result.txHash };
 }
 
 // -------------- Vulnerable path: MockUSDC.transfer from session wallet --
+// Intentionally kept inline here, not in the SDK. This is the anti-pattern
+// half of the demo — the agent calling USDC.transfer directly bypasses the
+// vault entirely. @safespend/sdk only ships the safe primitive.
 
 async function runVulnerable(p: {
-  clients: ChainClients;
+  clients: VaultClients;
   usdcAddress: Hex;
   merchant: Hex;
   merchantEns?: string;
