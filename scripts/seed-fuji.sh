@@ -26,10 +26,10 @@ FUJI_RPC_URL="${FUJI_RPC_URL:-https://api.avax-test.network/ext/bc/C/rpc}"
 AGENT_BUDGET="${AGENT_BUDGET:-500000000}"  # 500 USDC, 6 decimals
 AGENT_AVAX="${AGENT_AVAX:-0.3ether}"  # leaves headroom in deployer; faucet only drops 2 AVAX
 
-# Pull the deployed USDC address from packages/sdk/src/addresses.ts so we
-# don't have to re-pass it.
+# Pull the deployed USDC address from packages/contracts/src/addresses.ts
+# so we don't have to re-pass it.
 USDC=$(node -e "
-  const src = require('fs').readFileSync('$ROOT/packages/sdk/src/addresses.ts', 'utf8');
+  const src = require('fs').readFileSync('$ROOT/packages/contracts/src/addresses.ts', 'utf8');
   const m = src.match(/43113:\s*\{[^}]*usdc:\s*\"(0x[0-9a-fA-F]{40})\"/);
   if (!m) { console.error('No 43113 USDC address; run deploy-fuji.sh first.'); process.exit(1); }
   console.log(m[1]);

@@ -1,8 +1,9 @@
 /// Re-exports of contract metadata so components import from one place.
 import type { Abi } from "viem";
-import policyVaultAbiJson from "@safespend/sdk/abis/PolicyVault.json" with { type: "json" };
-import mockUsdcAbiJson from "@safespend/sdk/abis/MockUSDC.json" with { type: "json" };
-import { ADDRESSES, ANVIL_ACCOUNTS } from "@safespend/sdk/addresses";
+import policyVaultAbiJson from "@safespend/contracts/abis/PolicyVault.json" with { type: "json" };
+import mockUsdcAbiJson from "@safespend/contracts/abis/MockUSDC.json" with { type: "json" };
+import { ADDRESSES } from "@safespend/contracts/addresses";
+import { ANVIL_ACCOUNTS } from "./anvil.js";
 
 export const policyVaultAbi = policyVaultAbiJson as Abi;
 export const mockUsdcAbi = mockUsdcAbiJson as Abi;

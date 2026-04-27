@@ -1,7 +1,7 @@
 import { isAddress, getAddress, decodeEventLog, type Hex } from "viem";
 import type { LlmToolSchema } from "../llm/index.js";
 import { listingHash, type ChainClients } from "../chain.js";
-import { policyVaultAbi, mockUsdcAbi } from "../abi.js";
+import { policyVaultAbi, mockUsdcAbi } from "@safespend/contracts/abi";
 import { resolveEns } from "../ens.js";
 
 export const proposePurchaseSchema: LlmToolSchema = {

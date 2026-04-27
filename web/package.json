@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@safespend/agent": "workspace:*",
+    "@safespend/contracts": "workspace:*",
     "@safespend/sdk": "workspace:*",
     "@tanstack/react-query": "^5.62.16",
     "next": "15.1.3",
