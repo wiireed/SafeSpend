@@ -12,13 +12,9 @@
 /// who want to inspect activity outside a session.
 
 import { useEffect, useState } from "react";
-import {
-  createPublicClient,
-  http,
-  type Hex,
-} from "viem";
 import { avalancheFuji } from "viem/chains";
-import { ADDRESSES, REASON_CODE_LABELS, policyVaultAbi } from "@/lib/contracts";
+import { useVaultActivityHistory, type VaultActivityEntry } from "@safespend/react";
+import { ADDRESSES, REASON_CODE_LABELS } from "@/lib/contracts";
 import { MERCHANT_ENS } from "@/lib/merchants";
 import { formatUsdc, shortAddress } from "@/lib/format";
 
@@ -32,118 +28,13 @@ const FUJI_VAULT = ADDRESSES[43113].vault;
 /// the API key dependency.
 const PUBLIC_FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
 
-const fujiClient = createPublicClient({
-  chain: avalancheFuji,
-  transport: http(PUBLIC_FUJI_RPC),
-});
-
-type ActivityEntry = {
-  txHash: Hex;
-  blockNumber: bigint;
-  timestamp: number; // unix seconds
-  kind: "approved" | "rejected";
-  user: Hex;
-  merchant: Hex;
-  amount: bigint;
-  policyVersion?: bigint; // approved only - rejected events don't carry it
-  reason?: string;
-};
-
 export default function ActivityPage() {
-  const [entries, setEntries] = useState<ActivityEntry[]>([]);
-  const [status, setStatus] = useState<"loading" | "ready" | "error">(
-    "loading",
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [latestBlock, setLatestBlock] = useState<bigint | null>(null);
+  const { entries, status, error, latestBlock } = useVaultActivityHistory({
+    vaultAddress: FUJI_VAULT,
+    chain: avalancheFuji,
+    rpcUrl: PUBLIC_FUJI_RPC,
+  });
   const [now, setNow] = useState<number>(() => Math.floor(Date.now() / 1000));
-
-  const fetchEvents = async () => {
-    try {
-      const head = await fujiClient.getBlockNumber();
-      setLatestBlock(head);
-      // Fuji block time is ~2s. Public RPC default getLogs range is
-      // ~2000 blocks per request. 2000 blocks = ~67 min of history,
-      // plenty for a "recent activity" view. For a deeper history we'd
-      // paginate or use a dedicated indexer.
-      const HISTORY_BLOCKS = 2000n;
-      const fromBlock = head > HISTORY_BLOCKS ? head - HISTORY_BLOCKS : 0n;
-
-      // Use getContractEvents so the ABI is the source of truth for the
-      // event signatures - hand-typing parseAbiItem strings is brittle
-      // (an earlier version of this page silently returned zero results
-      // because the typed signature didn't match the contract's
-      // 'bytes32 listingHash' parameter, so the topic hash was wrong).
-      const [approvedLogs, rejectedLogs] = await Promise.all([
-        fujiClient.getContractEvents({
-          address: FUJI_VAULT,
-          abi: policyVaultAbi,
-          eventName: "PurchaseApproved",
-          fromBlock,
-          toBlock: head,
-        }),
-        fujiClient.getContractEvents({
-          address: FUJI_VAULT,
-          abi: policyVaultAbi,
-          eventName: "PurchaseRejected",
-          fromBlock,
-          toBlock: head,
-        }),
-      ]);
-
-      const allLogs = [
-        ...approvedLogs.map((l) => ({ ...l, kind: "approved" as const })),
-        ...rejectedLogs.map((l) => ({ ...l, kind: "rejected" as const })),
-      ];
-
-      const uniqueBlocks = Array.from(
-        new Set(allLogs.map((l) => l.blockNumber)),
-      ).filter((b): b is bigint => b !== null);
-
-      const blockTimestamps = new Map<bigint, number>();
-      await Promise.all(
-        uniqueBlocks.map(async (bn) => {
-          const block = await fujiClient.getBlock({ blockNumber: bn });
-          blockTimestamps.set(bn, Number(block.timestamp));
-        }),
-      );
-
-      const next: ActivityEntry[] = allLogs
-        .filter((l) => l.blockNumber !== null && l.transactionHash !== null)
-        .map((l) => {
-          const args = l.args as Record<string, unknown>;
-          // PurchaseApproved fields: user, merchant, amount, listingHash, policyVersion (uint64)
-          // PurchaseRejected fields: user, merchant, amount, listingHash, reasonCode, reason (string)
-          return {
-            txHash: l.transactionHash as Hex,
-            blockNumber: l.blockNumber as bigint,
-            timestamp: blockTimestamps.get(l.blockNumber as bigint) ?? 0,
-            kind: l.kind,
-            user: args.user as Hex,
-            merchant: args.merchant as Hex,
-            amount: args.amount as bigint,
-            policyVersion:
-              l.kind === "approved" ? (args.policyVersion as bigint) : undefined,
-            reason: l.kind === "rejected" ? (args.reason as string) : undefined,
-          };
-        })
-        .sort((a, b) => Number(b.blockNumber - a.blockNumber));
-
-      setEntries(next);
-      setStatus("ready");
-      setError(null);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
-      setStatus("error");
-    }
-  };
-
-  useEffect(() => {
-    fetchEvents();
-    const interval = setInterval(fetchEvents, 60_000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const tick = setInterval(
@@ -258,7 +149,7 @@ function ActivityRow({
   entry,
   now,
 }: {
-  entry: ActivityEntry;
+  entry: VaultActivityEntry;
   now: number;
 }) {
   const accent =

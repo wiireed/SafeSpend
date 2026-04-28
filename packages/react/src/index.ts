@@ -17,3 +17,18 @@ export {
   type AgentRunStatus,
   type UseAgentRunOptions,
 } from "./hooks/useAgentRun.js";
+export {
+  useNetworkSwitcher,
+  type ChainSpec,
+  type UseNetworkSwitcherResult,
+} from "./hooks/useNetworkSwitcher.js";
+export { usePolicy, type Policy } from "./hooks/usePolicy.js";
+export {
+  usePolicySetter,
+  type PolicyInput,
+} from "./hooks/usePolicySetter.js";
+export {
+  useVaultActivityHistory,
+  type VaultActivityEntry,
+  type UseVaultActivityHistoryOptions,
+} from "./hooks/useVaultActivityHistory.js";
