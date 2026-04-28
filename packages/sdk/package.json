@@ -10,6 +10,7 @@
     "./chain": "./src/chain.ts",
     "./ens": "./src/ens.ts",
     "./explorer": "./src/explorer.ts",
+    "./policy": "./src/policy.ts",
     "./spend": "./src/spend.ts",
     "./types": "./src/types.ts"
   },

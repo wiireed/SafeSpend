@@ -11,6 +11,7 @@ This is the package a downstream agent project imports if it just wants to call 
 | `@safespend/sdk/chain` | viem client factory; canonical listing-hash function |
 | `@safespend/sdk/ens` | Mainnet ENS forward + reverse resolution with TTL caches |
 | `@safespend/sdk/spend` | Preflight simulation, `proposePurchase` tx-builder, typed event decoder |
+| `@safespend/sdk/policy` | Server-side `getPolicy` reader and `setPolicy` writer |
 | `@safespend/sdk/explorer` | URL builders for tx and address pages on supported chains |
 | `@safespend/sdk/types` | `Address`, `Hex`, `Policy`, `PolicyInput`, `ReasonCode`, `ChainListing` |
 | `@safespend/sdk` (root) | Re-exports the above + `ADDRESSES` / `getAddresses` from `@safespend/contracts` |
@@ -43,6 +44,31 @@ const result = await proposePurchase({
 ```
 
 A full runnable version lives in [`examples/minimal-agent/`](../../examples/minimal-agent).
+
+## Policy reads + writes (server-side)
+
+```ts
+import { getPolicy, setPolicy } from "@safespend/sdk/policy";
+
+const policy = await getPolicy({ clients, vaultAddress, user });
+if (policy.version === 0n) {
+  // No policy ever set for this user.
+}
+
+const txHash = await setPolicy({
+  clients,
+  vaultAddress,
+  input: {
+    maxPerTx: 100_000_000n,    // 100 USDC
+    maxTotal: 500_000_000n,    // 500 USDC
+    expiresAt: BigInt(Math.floor(Date.now() / 1000) + 86_400),  // 24h
+    authorizedAgent: "0x...",
+    allowedMerchants: ["0x...", "0x..."],
+  },
+});
+```
+
+For React/wagmi-flavoured equivalents, see [`usePolicy`](../react#usepolicy-vaultaddress-user-refetchintervalms-) and [`usePolicySetter`](../react#usepolicysetter-vaultaddress-) in `@safespend/react`.
 
 ## ENS resolution (transport-agnostic)
 
