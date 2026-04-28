@@ -6,7 +6,7 @@ End-to-end runbook to ship SafeSpend on a public HTTPS URL via Amazon ECR + App 
 
 - AWS account with an IAM user that can push to ECR and create App Runner services. Required actions: `ecr:*` (push/pull) plus `apprunner:CreateService`, `apprunner:UpdateService`, `apprunner:StartDeployment`, `iam:PassRole`.
 - `aws` CLI v2 + `docker` (with buildx) on the local machine.
-- A successful Fuji deploy (`pnpm fuji:deploy` has run, addresses pinned in `shared/src/addresses.ts:43113`).
+- A successful Fuji deploy (`pnpm fuji:deploy` has run, addresses pinned in `packages/contracts/src/addresses.ts:43113`).
 - A Fuji-funded agent EOA private key, an OpenAI API key, and an Alchemy/Ankr Fuji RPC URL.
 
 ## 1. Configure AWS CLI (one-time)
@@ -44,7 +44,7 @@ From the repo root:
 ```sh
 docker buildx build \
   --platform linux/amd64 \
-  -f web/Dockerfile.prod \
+  -f apps/merchant/Dockerfile.prod \
   -t safespend-web:v1 \
   --build-arg NEXT_PUBLIC_CHAIN_ID=43113 \
   --build-arg NEXT_PUBLIC_FUJI_RPC_URL="https://avax-fuji.g.alchemy.com/v2/<your-key>" \
@@ -113,8 +113,8 @@ docker push $ECR_URI:latest
    | `PRIVATE_KEY` | the agent EOA private key |
    | `USER_ADDRESS` | the demo user EOA |
    | `AUTHORIZED_AGENT_ADDRESS` | derived from PRIVATE_KEY (same as USER_ADDRESS in the deploy script if user is the agent) |
-   | `VAULT_ADDRESS` | from `shared/src/addresses.ts:43113.vault` |
-   | `USDC_ADDRESS` | from `shared/src/addresses.ts:43113.usdc` |
+   | `VAULT_ADDRESS` | from `packages/contracts/src/addresses.ts:43113.vault` |
+   | `USDC_ADDRESS` | from `packages/contracts/src/addresses.ts:43113.usdc` |
 
 9. **Auto scaling**: **Min size 1, Max size 1** (single-tenant demo; avoids cold starts during the live demo).
 10. **Health check**: HTTP, path `/api/health`, interval 10s, timeout 5s, unhealthy threshold 5, healthy threshold 1.
@@ -128,7 +128,7 @@ After any code change, rebuild and push, then trigger a redeploy:
 
 ```sh
 # Bump tag
-docker buildx build --platform linux/amd64 -f web/Dockerfile.prod -t safespend-web:v2 \
+docker buildx build --platform linux/amd64 -f apps/merchant/Dockerfile.prod -t safespend-web:v2 \
   --build-arg NEXT_PUBLIC_CHAIN_ID=43113 \
   --build-arg NEXT_PUBLIC_FUJI_RPC_URL="..." \
   --build-arg NEXT_PUBLIC_MAINNET_RPC_URL="..." .
@@ -164,7 +164,7 @@ aws apprunner update-service \
 | Health check fails immediately, service stuck in `CREATING` | Container crashed during boot | Check CloudWatch logs in the App Runner console for the stacktrace; usually a missing required env var |
 | Env var change doesn't take effect | App Runner needs explicit deploy after env change | UI: "Deploy" button. CLI: `start-deployment`. |
 | 502 Bad Gateway hitting the URL | Container is up but the request crashed | CloudWatch logs. Common: a missing env var read by `runSafeSpendAgent` |
-| `/api/run` 500s with `chainId=43113 has unset addresses` | Fuji deploy didn't run, or `shared/src/addresses.ts` wasn't committed before building the image | Run `pnpm fuji:deploy`, commit, rebuild the image |
+| `/api/run` 500s with `chainId=43113 has unset addresses` | Fuji deploy didn't run, or `packages/contracts/src/addresses.ts` wasn't committed before building the image | Run `pnpm fuji:deploy`, commit, rebuild the image |
 
 ## Cost
 

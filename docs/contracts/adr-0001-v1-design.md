@@ -138,7 +138,7 @@ The agent and demo only use the observable variant.
 - A typed `PurchaseRejected` event is **indexable**, so analytics and audit tools can filter on `reasonCode` topic. Reverts have only the selector, which is harder to query historically.
 - But there are also callers (test scripts, future on-chain integrations) where a revert is the right semantics. So we keep both.
 
-The asymmetry inside `tryProposePurchase` (`unauthorized_agent` reverts; everything else emits) is a separate decision: see the discussion at [`PolicyVault.sol:204–206`](../../contracts/src/PolicyVault.sol). Short version: unauthenticated callers should not be able to write events to your slot.
+The asymmetry inside `tryProposePurchase` (`unauthorized_agent` reverts; everything else emits) is a separate decision: see the discussion at [`PolicyVault.sol:204–206`](../../packages/contracts/src/PolicyVault.sol). Short version: unauthenticated callers should not be able to write events to your slot.
 
 **Cost.** Two functions to maintain instead of one. Negligible.
 
@@ -148,7 +148,7 @@ The asymmetry inside `tryProposePurchase` (`unauthorized_agent` reverts; everyth
 
 ### D6. ENS resolution is off-chain only
 
-**What.** The vault stores merchant *addresses*. ENS names like `merchant-a.safespend.eth` are resolved off-chain (in [`agent/src/ens.ts`](../../agent/src/ens.ts) and [`web/lib/ens.ts`](../../web/lib/ens.ts)) before the address is ever passed to the contract.
+**What.** The vault stores merchant *addresses*. ENS names like `merchant-a.safespend.eth` are resolved off-chain (in [`packages/sdk/src/ens.ts`](../../packages/sdk/src/ens.ts) and [`apps/merchant/lib/ens.ts`](../../apps/merchant/lib/ens.ts)) before the address is ever passed to the contract.
 
 **Alternatives considered.**
 
@@ -289,4 +289,4 @@ These are reasonable v2 directions if SafeSpend grows past the hackathon. They a
 - [`overview.md`](./overview.md) — the architecture this ADR justifies
 - [`set-policy.md`](./set-policy.md) — operational details of the policy field decisions above
 - [`guardrails.md`](./guardrails.md) — the threat model that motivated the "fail closed" stance
-- [`PolicyVault.sol`](../../contracts/src/PolicyVault.sol) — the source itself
+- [`PolicyVault.sol`](../../packages/contracts/src/PolicyVault.sol) — the source itself

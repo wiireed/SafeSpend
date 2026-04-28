@@ -47,15 +47,15 @@ If you only have a minute, read the [pitch in the top-level README](../../README
 
 | File | Purpose |
 |---|---|
-| [`contracts/src/PolicyVault.sol`](../../contracts/src/PolicyVault.sol) | The whole policy engine — 272 lines of Solidity |
-| [`contracts/src/MockUSDC.sol`](../../contracts/src/MockUSDC.sol) | A 6-decimal ERC-20 with a public `mint`, for hackathon / testnet use only |
-| [`contracts/test/PolicyVault.t.sol`](../../contracts/test/PolicyVault.t.sol) | 23 Foundry unit tests, one per branch of the policy matrix |
-| [`contracts/script/Deploy.s.sol`](../../contracts/script/Deploy.s.sol) | Deploys MockUSDC, then PolicyVault pinned to it |
-| [`contracts/script/Seed.s.sol`](../../contracts/script/Seed.s.sol) | Pre-funds both demo lanes with 500 USDC each |
-| [`shared/src/types.ts`](../../shared/src/types.ts) | TypeScript mirror of the on-chain `Policy` struct and reason codes |
-| [`agent/src/tools/proposePurchase.ts`](../../agent/src/tools/proposePurchase.ts) | The tool the LLM actually calls — routes to safe (vault) or vulnerable (direct transfer) |
-| [`web/components/PolicyDialog.tsx`](../../web/components/PolicyDialog.tsx) | The form that wraps `setPolicy` — units, ENS resolution, submission |
-| [`web/components/Onboarding.tsx`](../../web/components/Onboarding.tsx) | The four-step checklist that drives a first-time user from connected wallet to deposited vault |
+| [`packages/contracts/src/PolicyVault.sol`](../../packages/contracts/src/PolicyVault.sol) | The whole policy engine — 272 lines of Solidity |
+| [`packages/contracts/src/MockUSDC.sol`](../../packages/contracts/src/MockUSDC.sol) | A 6-decimal ERC-20 with a public `mint`, for hackathon / testnet use only |
+| [`packages/contracts/test/PolicyVault.t.sol`](../../packages/contracts/test/PolicyVault.t.sol) | 23 Foundry unit tests, one per branch of the policy matrix |
+| [`packages/contracts/script/Deploy.s.sol`](../../packages/contracts/script/Deploy.s.sol) | Deploys MockUSDC, then PolicyVault pinned to it |
+| [`packages/contracts/script/Seed.s.sol`](../../packages/contracts/script/Seed.s.sol) | Pre-funds both demo lanes with 500 USDC each |
+| [`packages/sdk/src/types.ts`](../../packages/sdk/src/types.ts) | TypeScript mirror of the on-chain `Policy` struct and reason codes |
+| [`packages/agent-core/src/tools/proposePurchase.ts`](../../packages/agent-core/src/tools/proposePurchase.ts) | The tool the LLM actually calls — routes to safe (vault) or vulnerable (direct transfer) |
+| [`apps/merchant/components/PolicyDialog.tsx`](../../apps/merchant/components/PolicyDialog.tsx) | The form that wraps `setPolicy` — units, ENS resolution, submission |
+| [`apps/merchant/components/Onboarding.tsx`](../../apps/merchant/components/Onboarding.tsx) | The four-step checklist that drives a first-time user from connected wallet to deposited vault |
 
 ## Status
 

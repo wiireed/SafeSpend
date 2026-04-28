@@ -1,6 +1,6 @@
 # Onboarding — the 1 / 2 / 3 / 4 flow, end to end
 
-The first time a user opens the demo, they see a four-step checklist. This document explains exactly what each step does, why it exists in that order, what tx is sent on chain, and what the contract checks at each gate. The visible UI is in [`web/components/Onboarding.tsx`](../../web/components/Onboarding.tsx); this is the "what's actually happening" companion.
+The first time a user opens the demo, they see a four-step checklist. This document explains exactly what each step does, why it exists in that order, what tx is sent on chain, and what the contract checks at each gate. The visible UI is in [`apps/merchant/components/Onboarding.tsx`](../../apps/merchant/components/Onboarding.tsx); this is the "what's actually happening" companion.
 
 If you only want to *run* the demo, see [`docs/run-walkthrough.md`](../run-walkthrough.md). This doc is for understanding it.
 
@@ -34,7 +34,7 @@ You might reasonably ask: "Why do I have to set a policy *before* I deposit any 
 
 Three answers:
 
-1. **The contract enforces it.** `_depositFor` reverts with `NoPolicy` if the user has `version == 0` ([`PolicyVault.sol:152`](../../contracts/src/PolicyVault.sol)). [Test 4](../../contracts/test/PolicyVault.t.sol) pins this. We made the choice deliberately: depositing into a slot with no policy means the funds are only ever withdrawable, not spendable — the only useful action against that state is `withdraw`, which makes the deposit a no-op. So we just don't allow it.
+1. **The contract enforces it.** `_depositFor` reverts with `NoPolicy` if the user has `version == 0` ([`PolicyVault.sol:152`](../../packages/contracts/src/PolicyVault.sol)). [Test 4](../../packages/contracts/test/PolicyVault.t.sol) pins this. We made the choice deliberately: depositing into a slot with no policy means the funds are only ever withdrawable, not spendable — the only useful action against that state is `withdraw`, which makes the deposit a no-op. So we just don't allow it.
 
 2. **The policy is the invariant.** As soon as funds enter the vault, there must be a defined rule for who can spend them. The policy *is* that rule. No policy → no funds. This simplifies the trust model: you can never have orphaned funds in the vault that no policy governs.
 
@@ -51,7 +51,7 @@ This is the same mint/approve/deposit pattern any DeFi vault uses. The novelty i
 ## Step 1 — Set spending policy
 
 **On chain:** `PolicyVault.setPolicy(PolicyInput)`
-**Source:** [`Onboarding.tsx:80–95`](../../web/components/Onboarding.tsx) opens [`PolicyDialog`](../../web/components/PolicyDialog.tsx)
+**Source:** [`Onboarding.tsx:80–95`](../../apps/merchant/components/Onboarding.tsx) opens [`PolicyDialog`](../../apps/merchant/components/PolicyDialog.tsx)
 **Signer:** Depositor (the connected wallet)
 **Gas:** ~120 k with two merchants
 
@@ -88,7 +88,7 @@ After this transaction lands:
 - A `PolicySet` event is on chain.
 - The other three steps are now unblocked (they all check `hasPolicy` before enabling).
 
-**The UI logic** ([`Onboarding.tsx:57–58`](../../web/components/Onboarding.tsx)):
+**The UI logic** ([`Onboarding.tsx:57–58`](../../apps/merchant/components/Onboarding.tsx)):
 
 ```ts
 const policyTuple = policy as { version: bigint } | undefined;
@@ -100,7 +100,7 @@ const hasPolicy = policyTuple !== undefined && policyTuple.version > 0n;
 ## Step 2 — Mint MockUSDC (demo only)
 
 **On chain:** `MockUSDC.mint(user, 1_000_000_000)` (1 000 USDC at 6 decimals)
-**Source:** [`Onboarding.tsx:208–238`](../../web/components/Onboarding.tsx) — `MintButton`
+**Source:** [`Onboarding.tsx:208–238`](../../apps/merchant/components/Onboarding.tsx) — `MintButton`
 **Signer:** Depositor
 **Gas:** ~50 k
 
@@ -132,11 +132,11 @@ done={(userBalance ?? 0n) >= FIVE_HUNDRED}      // FIVE_HUNDRED = 500e6
 ## Step 3 — Approve vault to pull USDC
 
 **On chain:** `MockUSDC.approve(vault, 1_000_000e6)` (1M-USDC unlimited-ish allowance)
-**Source:** [`Onboarding.tsx:240–270`](../../web/components/Onboarding.tsx) — `ApproveButton`
+**Source:** [`Onboarding.tsx:240–270`](../../apps/merchant/components/Onboarding.tsx) — `ApproveButton`
 **Signer:** Depositor
 **Gas:** ~46 k
 
-Standard ERC-20 step. The vault uses `safeTransferFrom(payer, vault, amount)` inside `_depositFor` ([`PolicyVault.sol:157`](../../contracts/src/PolicyVault.sol)):
+Standard ERC-20 step. The vault uses `safeTransferFrom(payer, vault, amount)` inside `_depositFor` ([`PolicyVault.sol:157`](../../packages/contracts/src/PolicyVault.sol)):
 
 ```solidity
 function _depositFor(address user, address payer, uint256 amount) internal {
@@ -156,7 +156,7 @@ After this transaction lands:
 - `MockUSDC.allowance(user, vault) >= 1_000_000e6`
 - The deposit button in step 4 unlocks.
 
-UI gate ([`Onboarding.tsx:114–120`](../../web/components/Onboarding.tsx)):
+UI gate ([`Onboarding.tsx:114–120`](../../apps/merchant/components/Onboarding.tsx)):
 
 ```ts
 active={
@@ -172,7 +172,7 @@ If the user already approved enough (from a previous session), step 3 is auto-do
 ## Step 4 — Deposit into vault
 
 **On chain:** `PolicyVault.deposit(500_000_000)` (500 USDC at 6 decimals)
-**Source:** [`Onboarding.tsx:272–300`](../../web/components/Onboarding.tsx) — `DepositButton`
+**Source:** [`Onboarding.tsx:272–300`](../../apps/merchant/components/Onboarding.tsx) — `DepositButton`
 **Signer:** Depositor
 **Gas:** ~70 k
 
@@ -211,7 +211,7 @@ Each step's status is computed from on-chain reads, not from "did the user click
 - **Connecting a previously-onboarded wallet skips straight to the demo.** All four steps come up as `done`.
 - **A failed transaction just stays at `active`.** The on-chain reads are unchanged, so the step doesn't advance.
 
-The four reads happen in `Onboarding.tsx` ([lines 25–55](../../web/components/Onboarding.tsx)):
+The four reads happen in `Onboarding.tsx` ([lines 25–55](../../apps/merchant/components/Onboarding.tsx)):
 
 | Read | Contract call | Used by |
 |---|---|---|
@@ -220,7 +220,7 @@ The four reads happen in `Onboarding.tsx` ([lines 25–55](../../web/components/
 | `allowance` | `usdc.allowance(user, vault)` | Step 3 done if `>= 500e6` |
 | `deposited` | `vault.deposited(user)` | Step 4 done if `>= 500e6` |
 
-After every successful transaction, `refresh()` re-runs all four reads ([`Onboarding.tsx:63–68`](../../web/components/Onboarding.tsx)) so the next step lights up.
+After every successful transaction, `refresh()` re-runs all four reads ([`Onboarding.tsx:63–68`](../../apps/merchant/components/Onboarding.tsx)) so the next step lights up.
 
 ## What can go wrong (and what the UI says)
 
@@ -228,19 +228,19 @@ After every successful transaction, `refresh()` re-runs all four reads ([`Onboar
 |---|---|---|
 | Step 1 transaction reverts with `AllowlistTooLong` | More than 20 merchants in the textarea | Trim the list |
 | Step 1 dialog stays disabled | One merchant line failed ENS resolution or is invalid | Fix the offending line |
-| Step 2 stays at "active" with `0 USDC` | The mint tx hasn't been mined yet, or you're on a chain without `MockUSDC` deployed | Check `shared/src/addresses.ts` for the chain id |
+| Step 2 stays at "active" with `0 USDC` | The mint tx hasn't been mined yet, or you're on a chain without `MockUSDC` deployed | Check `packages/contracts/src/addresses.ts` for the chain id |
 | Step 4 reverts with `ERC20: insufficient allowance` | Step 3 never ran, or the allowance is < 500 | Re-run step 3 with the larger allowance |
 | Step 4 reverts with `NoPolicy` | Somehow step 1 was skipped (rare — UI gates this) | Run step 1 |
 | Step 4 reverts with `ERC20: transfer amount exceeds balance` | Not enough USDC; step 2 minted somewhere else | Re-run step 2 to the connected wallet |
 
-The PolicyDialog surfaces revert messages inline ([`PolicyDialog.tsx:198–202`](../../web/components/PolicyDialog.tsx)). The mint / approve / deposit buttons rely on the wallet UI to show errors, since the contracts use standard OZ ERC-20 errors.
+The PolicyDialog surfaces revert messages inline ([`PolicyDialog.tsx:198–202`](../../apps/merchant/components/PolicyDialog.tsx)). The mint / approve / deposit buttons rely on the wallet UI to show errors, since the contracts use standard OZ ERC-20 errors.
 
 ## What the seed script does instead, on Fuji
 
 For the *judge-friendly* demo on Fuji, we don't expect the judge to do steps 2–4 manually. The deploy + seed scripts pre-fund both lanes:
 
 ```solidity
-// contracts/script/Seed.s.sol — relevant part
+// packages/contracts/script/Seed.s.sol — relevant part
 
 usdc.mint(msg.sender, SAFE_BUDGET);                  // 500 USDC to deployer
 usdc.approve(address(vault), SAFE_BUDGET);           // approve vault
@@ -264,4 +264,4 @@ The seed script's `depositFor` requires step 1 to have already happened for the 
 - [`guardrails.md`](./guardrails.md) — what the policy enforces once you're onboarded
 - [`docs/run-walkthrough.md`](../run-walkthrough.md) — operational walkthrough for first-time users
 - [`docs/demo-recipe.md`](../demo-recipe.md) — the 5-minute reproduction script
-- [`web/components/Onboarding.tsx`](../../web/components/Onboarding.tsx) — the source for the four-step UI
+- [`apps/merchant/components/Onboarding.tsx`](../../apps/merchant/components/Onboarding.tsx) — the source for the four-step UI

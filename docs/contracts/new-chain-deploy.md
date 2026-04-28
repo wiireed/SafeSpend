@@ -12,7 +12,7 @@ Before running any commands, decide three things:
 
 ### 1. What ERC-20 will the vault hold?
 
-The vault's `usdc` field is `immutable` and set in the constructor ([`PolicyVault.sol:18`](../../contracts/src/PolicyVault.sol)). It cannot be changed after deploy. You have three options:
+The vault's `usdc` field is `immutable` and set in the constructor ([`PolicyVault.sol:18`](../../packages/contracts/src/PolicyVault.sol)). It cannot be changed after deploy. You have three options:
 
 - **Deploy a fresh `MockUSDC`** alongside the vault. Easiest for testnets. The current Anvil and Fuji deployments do this.
 - **Point at the chain's canonical USDC.** Real-world option; Circle publishes USDC addresses for all major chains. Skip the `MockUSDC` deployment in `Deploy.s.sol`.
@@ -24,10 +24,10 @@ For testnets, `MockUSDC` is fine. The cost is one extra ~700 k-gas deploy.
 
 The chain id needs to flow through three places:
 
-- **`shared/src/explorer.ts`** — add to `SupportedChainId` and `EXPLORERS` map.
-- **`shared/src/addresses.ts`** — add a new entry under `ADDRESSES`.
-- **`agent/src/chain.ts`** — add a `pickChain` case so viem maps the id to a `Chain` object.
-- **`web/lib/wagmi.ts`** — add the chain to wagmi's config so MetaMask can connect.
+- **`packages/sdk/src/explorer.ts`** — add to `SupportedChainId` and `EXPLORERS` map.
+- **`packages/contracts/src/addresses.ts`** — add a new entry under `ADDRESSES`.
+- **`packages/sdk/src/chain.ts`** — add a `pickChain` case so viem maps the id to a `Chain` object.
+- **`apps/merchant/lib/wagmi.ts`** — add the chain to wagmi's config so MetaMask can connect.
 
 This is the bulk of the wiring work for a new chain. About 10 lines per file.
 
@@ -35,7 +35,7 @@ This is the bulk of the wiring work for a new chain. About 10 lines per file.
 
 The agent address is configured **per-deployment, not per-chain**. You can use a different agent EOA on every chain if you like, but in practice you probably want one agent server that can spend on whichever chain the user is on, and you set the right address in the user's policy at `setPolicy` time. The agent EOA does *not* go in the deploy script — only the depositor sets it.
 
-For the demo seed script, the agent address is read from `AUTHORIZED_AGENT_ADDRESS` env. See [`Seed.s.sol:26`](../../contracts/script/Seed.s.sol).
+For the demo seed script, the agent address is read from `AUTHORIZED_AGENT_ADDRESS` env. See [`Seed.s.sol:26`](../../packages/contracts/script/Seed.s.sol).
 
 ## The deploy itself
 
@@ -44,8 +44,8 @@ The Solidity side is identical for any chain. From the repo root:
 ```sh
 export DEPLOYER_PRIVATE_KEY=0x...   # funded EOA on the target chain
 export TARGET_RPC_URL=https://...   # RPC endpoint for the target chain
-forge script contracts/script/Deploy.s.sol \
-  --root contracts \
+forge script packages/contracts/script/Deploy.s.sol \
+  --root packages/contracts \
   --rpc-url "$TARGET_RPC_URL" \
   --private-key "$DEPLOYER_PRIVATE_KEY" \
   --broadcast \
@@ -58,7 +58,7 @@ Key flags:
 - `--broadcast` — actually send the transactions. Without it, forge does a dry-run.
 - `--slow` — wait for each tx to confirm before sending the next, so the broadcast artifact is reliable. Drop on chains with very fast finality if you're confident.
 
-What gets deployed ([`Deploy.s.sol`](../../contracts/script/Deploy.s.sol)):
+What gets deployed ([`Deploy.s.sol`](../../packages/contracts/script/Deploy.s.sol)):
 
 ```solidity
 function run() external returns (MockUSDC usdc, PolicyVault vault) {
@@ -77,7 +77,7 @@ Two contracts. The vault's constructor argument is the freshly-deployed `MockUSD
 After it broadcasts successfully, the addresses are in the broadcast artifact:
 
 ```sh
-contracts/broadcast/Deploy.s.sol/<chainId>/run-latest.json
+packages/contracts/broadcast/Deploy.s.sol/<chainId>/run-latest.json
 ```
 
 with `transactions[*].contractName` and `transactions[*].contractAddress`. The Fuji helper script ([`scripts/deploy-fuji.sh`](../../scripts/deploy-fuji.sh)) parses this with `jq` and pipes into `update-fuji-addresses.mjs`. For a new chain, you'd write a similar two-line shell script or just paste the addresses by hand.
@@ -86,7 +86,7 @@ with `transactions[*].contractName` and `transactions[*].contractAddress`. The F
 
 Once you have `<USDC_ADDRESS>` and `<VAULT_ADDRESS>` for chain id `<CHAIN_ID>`, four edits:
 
-### A. `shared/src/explorer.ts`
+### A. `packages/sdk/src/explorer.ts`
 
 ```ts
 export type SupportedChainId = 31337 | 43113 | <CHAIN_ID>;
@@ -100,7 +100,7 @@ const EXPLORERS: Record<number, string | null> = {
 
 Without this, `explorerTxUrl` and `explorerAddressUrl` return `null` and the UI's "view on Snowtrace" links are missing. Not load-bearing but a quality regression.
 
-### B. `shared/src/addresses.ts`
+### B. `packages/contracts/src/addresses.ts`
 
 ```ts
 export const ADDRESSES: Record<SupportedChainId, DeployedAddresses> = {
@@ -115,7 +115,7 @@ export const ADDRESSES: Record<SupportedChainId, DeployedAddresses> = {
 
 This is the lookup table the agent and the web app both read. `getAddresses(chainId)` will throw on unsupported chains — adding the entry is what enables the chain.
 
-### C. `agent/src/chain.ts`
+### C. `packages/sdk/src/chain.ts`
 
 ```ts
 import { foundry, avalancheFuji, sepolia } from "viem/chains";   // add the import
@@ -130,7 +130,7 @@ function pickChain(chainId: number): Chain {
 
 If your target chain isn't already in `viem/chains`, you can build a `Chain` object inline — see viem's `defineChain` helper. Common testnets (Sepolia, Base Sepolia, Optimism Sepolia, Arbitrum Sepolia) are already in viem.
 
-### D. `web/lib/wagmi.ts`
+### D. `apps/merchant/lib/wagmi.ts`
 
 Add the chain to wagmi's chain list and connector config. This is what tells MetaMask "I support chain X" and what RainbowKit / WalletConnect display in the network switcher.
 
@@ -142,7 +142,7 @@ If you want the four-step onboarding flow to work on the new chain, you need:
 2. **The agent EOA has gas on the new chain** — to sign `tryProposePurchase`. Same faucet step.
 3. **(Vulnerable lane)** The agent EOA has `MockUSDC` directly in its wallet. Use `usdc.mint(agent, amount)` from the deployer.
 
-The seed script ([`Seed.s.sol`](../../contracts/script/Seed.s.sol)) does steps 2-style preparation but is hard-coded to mint with the deployer key. Edit env vars and re-run:
+The seed script ([`Seed.s.sol`](../../packages/contracts/script/Seed.s.sol)) does steps 2-style preparation but is hard-coded to mint with the deployer key. Edit env vars and re-run:
 
 ```sh
 export USDC_ADDRESS=<USDC_ADDRESS>
@@ -150,8 +150,8 @@ export VAULT_ADDRESS=<VAULT_ADDRESS>
 export USER_ADDRESS=<demo user EOA>
 export AUTHORIZED_AGENT_ADDRESS=<agent EOA>
 
-forge script contracts/script/Seed.s.sol \
-  --root contracts \
+forge script packages/contracts/script/Seed.s.sol \
+  --root packages/contracts \
   --rpc-url "$TARGET_RPC_URL" \
   --private-key "$DEPLOYER_PRIVATE_KEY" \
   --broadcast
@@ -239,4 +239,4 @@ After that, the new chain is a first-class deployment target and `pnpm contracts
 - [`overview.md`](./overview.md) — the architecture you're deploying
 - [`docs/fuji-deploy.md`](../fuji-deploy.md) — the existing one-command Fuji path; useful as a template
 - [`docs/aws-deploy.md`](../aws-deploy.md) — putting the web side somewhere durable so the chain deploy has a frontend
-- [`Deploy.s.sol`](../../contracts/script/Deploy.s.sol) and [`Seed.s.sol`](../../contracts/script/Seed.s.sol) — the scripts you'll be running
+- [`Deploy.s.sol`](../../packages/contracts/script/Deploy.s.sol) and [`Seed.s.sol`](../../packages/contracts/script/Seed.s.sol) — the scripts you'll be running

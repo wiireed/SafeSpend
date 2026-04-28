@@ -8,20 +8,20 @@ Every spend on the safe lane goes through `PolicyVault.tryProposePurchase`. Ther
 
 | # | Reason code | What triggers it | Enforcement | Failure mode | Test |
 |---|---|---|---|---|---|
-| 1 | `unauthorized_agent` | `msg.sender` is not the policy's `authorizedAgent` | [PolicyVault.sol:206](../../contracts/src/PolicyVault.sol) | **Hard revert** | `test_TryProposePurchase_RevertsWhenUnauthorizedAgent` |
-| 2 | `no_policy` | The user has never called `setPolicy` (`version == 0`) | [PolicyVault.sol:198–202](../../contracts/src/PolicyVault.sol) | Soft (event + return) | covered indirectly via `test_Deposit_RevertsWhenNoPolicy` |
-| 3 | `policy_expired` | `block.timestamp > policy.expiresAt` | [PolicyVault.sol:225](../../contracts/src/PolicyVault.sol) | Soft (event + return) | `test_ProposePurchase_ExpiredPolicy` |
-| 4 | `merchant_not_allowed` | `merchant` is not in `policy.allowedMerchants[]` | [PolicyVault.sol:226](../../contracts/src/PolicyVault.sol) | Soft (event + return) | `test_ProposePurchase_MerchantNotAllowed`, `test_TryProposePurchase_EmitsRejectedReason`, `test_Events_PurchaseRejected_IndexesReasonCode` |
-| 5 | `exceeds_per_tx` | `amount > policy.maxPerTx` | [PolicyVault.sol:227](../../contracts/src/PolicyVault.sol) | Soft (event + return) | `test_ProposePurchase_ExceedsPerTx` |
-| 6 | `exceeds_total` | `spent[user] + amount > policy.maxTotal` | [PolicyVault.sol:228](../../contracts/src/PolicyVault.sol) | Soft (event + return) | `test_ProposePurchase_ExceedsTotal_OnSecondCall` |
-| 7 | `insufficient_deposit` | `spent[user] + amount > deposited[user]` | [PolicyVault.sol:229](../../contracts/src/PolicyVault.sol) | Soft (event + return) | `test_ProposePurchase_InsufficientDeposit` |
-| ✓ | *(approval)* | All five soft checks pass and the agent is authorised | [PolicyVault.sol:233](../../contracts/src/PolicyVault.sol) | `PurchaseApproved` + `safeTransfer` | `test_ProposePurchase_HappyPath`, `test_TryProposePurchase_HappyPath_EmitsApproved`, `test_Events_PurchaseApproved_IndexesPolicyVersion` |
+| 1 | `unauthorized_agent` | `msg.sender` is not the policy's `authorizedAgent` | [PolicyVault.sol:206](../../packages/contracts/src/PolicyVault.sol) | **Hard revert** | `test_TryProposePurchase_RevertsWhenUnauthorizedAgent` |
+| 2 | `no_policy` | The user has never called `setPolicy` (`version == 0`) | [PolicyVault.sol:198–202](../../packages/contracts/src/PolicyVault.sol) | Soft (event + return) | covered indirectly via `test_Deposit_RevertsWhenNoPolicy` |
+| 3 | `policy_expired` | `block.timestamp > policy.expiresAt` | [PolicyVault.sol:225](../../packages/contracts/src/PolicyVault.sol) | Soft (event + return) | `test_ProposePurchase_ExpiredPolicy` |
+| 4 | `merchant_not_allowed` | `merchant` is not in `policy.allowedMerchants[]` | [PolicyVault.sol:226](../../packages/contracts/src/PolicyVault.sol) | Soft (event + return) | `test_ProposePurchase_MerchantNotAllowed`, `test_TryProposePurchase_EmitsRejectedReason`, `test_Events_PurchaseRejected_IndexesReasonCode` |
+| 5 | `exceeds_per_tx` | `amount > policy.maxPerTx` | [PolicyVault.sol:227](../../packages/contracts/src/PolicyVault.sol) | Soft (event + return) | `test_ProposePurchase_ExceedsPerTx` |
+| 6 | `exceeds_total` | `spent[user] + amount > policy.maxTotal` | [PolicyVault.sol:228](../../packages/contracts/src/PolicyVault.sol) | Soft (event + return) | `test_ProposePurchase_ExceedsTotal_OnSecondCall` |
+| 7 | `insufficient_deposit` | `spent[user] + amount > deposited[user]` | [PolicyVault.sol:229](../../packages/contracts/src/PolicyVault.sol) | Soft (event + return) | `test_ProposePurchase_InsufficientDeposit` |
+| ✓ | *(approval)* | All five soft checks pass and the agent is authorised | [PolicyVault.sol:233](../../packages/contracts/src/PolicyVault.sol) | `PurchaseApproved` + `safeTransfer` | `test_ProposePurchase_HappyPath`, `test_TryProposePurchase_HappyPath_EmitsApproved`, `test_Events_PurchaseApproved_IndexesPolicyVersion` |
 
 These seven outcomes cover every code path through `tryProposePurchase`. The 23-test suite has at least one test per row.
 
 ### The order of the checks matters for events, not for safety
 
-`_validate` returns the **first** failing reason ([PolicyVault.sol:219–231](../../contracts/src/PolicyVault.sol)):
+`_validate` returns the **first** failing reason ([PolicyVault.sol:219–231](../../packages/contracts/src/PolicyVault.sol)):
 
 ```solidity
 if (block.timestamp > p.expiresAt) return Reason.PolicyExpired;
@@ -41,11 +41,11 @@ Every other rejection is emitted as a `PurchaseRejected` event so the demo, the 
 - The caller is not authenticated, so they should not be able to write events to the user's address (it would be cheap event-spam).
 - The agent is *expected* to be authorised — if it isn't, that's a configuration error, not a normal-operations rejection.
 
-This asymmetry is documented at [PolicyVault.sol:204–206](../../contracts/src/PolicyVault.sol):
+This asymmetry is documented at [PolicyVault.sol:204–206](../../packages/contracts/src/PolicyVault.sol):
 
 > *"Same auth gate as the strict path. The `unauthorized_agent` reason code is reserved but unreachable from this path in v1."*
 
-The reason code `unauthorized_agent` is reserved in the TypeScript type ([`shared/src/types.ts:30`](../../shared/src/types.ts)) so a future v2 could choose to emit it as a soft event if rate-limited. v1 does not.
+The reason code `unauthorized_agent` is reserved in the TypeScript type ([`packages/sdk/src/types.ts:30`](../../packages/sdk/src/types.ts)) so a future v2 could choose to emit it as a soft event if rate-limited. v1 does not.
 
 ## What this defends against
 
@@ -75,7 +75,7 @@ The blast radius is exactly the policy envelope. The user's `withdraw` button is
 
 ### 3. A malicious or buggy merchant contract
 
-The merchant in the allowlist is just an `address`. If that address turns out to be a contract with a callback that re-enters the vault, the vault has CEI in `_execute` ([PolicyVault.sol:233–244](../../contracts/src/PolicyVault.sol)):
+The merchant in the allowlist is just an `address`. If that address turns out to be a contract with a callback that re-enters the vault, the vault has CEI in `_execute` ([PolicyVault.sol:233–244](../../packages/contracts/src/PolicyVault.sol)):
 
 ```solidity
 spent[user] += amount;                                  // state change first
@@ -87,17 +87,17 @@ Even if `safeTransfer` triggered an arbitrary callback, the user's `spent` is al
 
 ### 4. Exhausting the deposit before the budget
 
-`maxTotal` is the spending budget; `deposited` is what's actually in the vault. The check at [PolicyVault.sol:229](../../contracts/src/PolicyVault.sol) is:
+`maxTotal` is the spending budget; `deposited` is what's actually in the vault. The check at [PolicyVault.sol:229](../../packages/contracts/src/PolicyVault.sol) is:
 
 ```solidity
 if (spent[user] + amount > deposited[user]) return Reason.InsufficientDeposit;
 ```
 
-…so a policy can be set with `maxTotal = 1_000_000` USDC, but if only 30 USDC are deposited, only 30 will ever be spent. The two limits are independent and both must be satisfied. `remainingAllowance` ([PolicyVault.sol:130–139](../../contracts/src/PolicyVault.sol)) returns the tighter of the two for UX; the contract enforces both for safety.
+…so a policy can be set with `maxTotal = 1_000_000` USDC, but if only 30 USDC are deposited, only 30 will ever be spent. The two limits are independent and both must be satisfied. `remainingAllowance` ([PolicyVault.sol:130–139](../../packages/contracts/src/PolicyVault.sol)) returns the tighter of the two for UX; the contract enforces both for safety.
 
 ### 5. Replaying a stale policy after the user changes it
 
-Every policy change increments `version` ([PolicyVault.sol:105](../../contracts/src/PolicyVault.sol)). Every approved purchase emits the version it ran under ([PolicyVault.sol:242](../../contracts/src/PolicyVault.sol), indexed). So:
+Every policy change increments `version` ([PolicyVault.sol:105](../../packages/contracts/src/PolicyVault.sol)). Every approved purchase emits the version it ran under ([PolicyVault.sol:242](../../packages/contracts/src/PolicyVault.sol), indexed). So:
 
 - The vault always validates against the *current* policy at the time of the call. Stale rules are not a thing — only one policy exists per user at any moment.
 - The audit trail still proves which version a past spend ran under, even after the user has rotated to a tighter policy. Test 22 (`test_Events_PurchaseApproved_IndexesPolicyVersion`) pins this.
@@ -108,7 +108,7 @@ The user can call `setPolicy` again and replace everything — except `spent[use
 
 ### 7. Allowlist of pathological size
 
-`MAX_ALLOWLIST = 20` ([PolicyVault.sol:16](../../contracts/src/PolicyVault.sol)) caps the linear scan in `_isAllowed`. Test 3 (`test_SetPolicy_RevertsWhenAllowlistTooLong`) pins the boundary. This is a gas-grief defence: without the cap, a user could set a policy with 10,000 merchants and every `proposePurchase` call would O(n) scan them.
+`MAX_ALLOWLIST = 20` ([PolicyVault.sol:16](../../packages/contracts/src/PolicyVault.sol)) caps the linear scan in `_isAllowed`. Test 3 (`test_SetPolicy_RevertsWhenAllowlistTooLong`) pins the boundary. This is a gas-grief defence: without the cap, a user could set a policy with 10,000 merchants and every `proposePurchase` call would O(n) scan them.
 
 ### 8. Front-run / MEV on a `setPolicy`
 
@@ -172,8 +172,8 @@ If any of these slip through, file a finding. We have not seen any do so.
 ## How to verify locally in <1 minute
 
 ```sh
-forge install --root contracts          # one-time, fetches OZ + forge-std
-forge test --root contracts -vv         # 23 tests, ~1s
+forge install --root packages/contracts          # one-time, fetches OZ + forge-std
+forge test --root packages/contracts -vv         # 23 tests, ~1s
 ```
 
 Output should be `Ran 23 tests`, all passing. The verbose flag prints each test name; cross-reference with the table at the top of this doc if anything fails.
@@ -182,5 +182,5 @@ Output should be `Ran 23 tests`, all passing. The verbose flag prints each test 
 
 - [`overview.md`](./overview.md) — the architecture story this doc references throughout
 - [`glossary.md`](./glossary.md) — definitions of every term used here
-- [`PolicyVault.sol`](../../contracts/src/PolicyVault.sol) — the source itself, 272 lines, fully commented
-- [`PolicyVault.t.sol`](../../contracts/test/PolicyVault.t.sol) — the 23 tests, one section per row of the rejection matrix
+- [`PolicyVault.sol`](../../packages/contracts/src/PolicyVault.sol) — the source itself, 272 lines, fully commented
+- [`PolicyVault.t.sol`](../../packages/contracts/test/PolicyVault.t.sol) — the 23 tests, one section per row of the rejection matrix
