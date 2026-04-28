@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAccount, useChainId, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { isAddress, type Hex } from "viem";
-import { policyVaultAbi, ADDRESSES, ANVIL_ACCOUNTS } from "@/lib/contracts";
+import { usePolicySetter } from "@safespend/react";
+import { ADDRESSES, ANVIL_ACCOUNTS } from "@/lib/contracts";
 import { parseUsdc } from "@/lib/format";
 import { resolveAddressOrEns } from "@/lib/ens";
 
@@ -28,10 +29,8 @@ export function PolicyDialog({ onClose }: { onClose: () => void }) {
   );
   const [resolved, setResolved] = useState<ResolvedRow[]>([]);
 
-  const { writeContract, data: txHash, isPending, error } = useWriteContract();
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({
-    hash: txHash,
-  });
+  const { setPolicy, isPending, isConfirming, isSuccess, error } =
+    usePolicySetter({ vaultAddress: addrs?.vault });
 
   useEffect(() => {
     const inputs = merchants
@@ -84,19 +83,12 @@ export function PolicyDialog({ onClose }: { onClose: () => void }) {
       )
       .filter((a): a is Hex => a !== null);
 
-    writeContract({
-      address: addrs.vault,
-      abi: policyVaultAbi,
-      functionName: "setPolicy",
-      args: [
-        {
-          maxPerTx: parseUsdc(maxPerTx),
-          maxTotal: parseUsdc(maxTotal),
-          expiresAt,
-          authorizedAgent: authorizedAgent as Hex,
-          allowedMerchants,
-        },
-      ],
+    setPolicy({
+      maxPerTx: parseUsdc(maxPerTx),
+      maxTotal: parseUsdc(maxTotal),
+      expiresAt,
+      authorizedAgent: authorizedAgent as Hex,
+      allowedMerchants,
     });
   };
 
@@ -210,12 +202,12 @@ export function PolicyDialog({ onClose }: { onClose: () => void }) {
           </button>
           <button
             onClick={submit}
-            disabled={isPending || confirming || !address || !allMerchantsOk}
+            disabled={isPending || isConfirming || !address || !allMerchantsOk}
             className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium hover:bg-emerald-500 disabled:opacity-50"
           >
             {isPending
               ? "Awaiting wallet…"
-              : confirming
+              : isConfirming
                 ? "Confirming…"
                 : isSuccess
                   ? "Saved!"

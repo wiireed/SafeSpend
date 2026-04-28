@@ -5,6 +5,44 @@
 export const policyVaultAbi = [
   {
     type: "function",
+    name: "getPolicy",
+    stateMutability: "view",
+    inputs: [{ name: "user", type: "address" }],
+    outputs: [
+      {
+        type: "tuple",
+        components: [
+          { name: "maxPerTx", type: "uint256" },
+          { name: "maxTotal", type: "uint256" },
+          { name: "expiresAt", type: "uint256" },
+          { name: "authorizedAgent", type: "address" },
+          { name: "version", type: "uint64" },
+          { name: "allowedMerchants", type: "address[]" },
+        ],
+      },
+    ],
+  },
+  {
+    type: "function",
+    name: "setPolicy",
+    stateMutability: "nonpayable",
+    inputs: [
+      {
+        name: "input",
+        type: "tuple",
+        components: [
+          { name: "maxPerTx", type: "uint256" },
+          { name: "maxTotal", type: "uint256" },
+          { name: "expiresAt", type: "uint256" },
+          { name: "authorizedAgent", type: "address" },
+          { name: "allowedMerchants", type: "address[]" },
+        ],
+      },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "tryProposePurchase",
     stateMutability: "nonpayable",
     inputs: [

@@ -3,6 +3,7 @@
 import { useAccount } from "wagmi";
 import type { RunEvent } from "@safespend/agent-core";
 import { useAgentRun } from "@safespend/react";
+import { RunEventLine } from "./RunEventLine";
 import { saveRun } from "@/lib/runs";
 
 export type RunMode = "safe" | "vulnerable";
@@ -22,15 +23,6 @@ export function RunPanel({ mode, title, accent }: { mode: RunMode; title: string
       });
     },
   });
-
-  const lastDone =
-    status === "done"
-      ? (events.find((e) => e.kind === "done") ??
-        // The done event is excluded from the public events list above by the
-        // hook's contract — we read it from the saved run instead. For the
-        // status badge we just need its presence.
-        null)
-      : null;
 
   const accentClass =
     accent === "emerald"
@@ -73,10 +65,10 @@ export function RunPanel({ mode, title, accent }: { mode: RunMode; title: string
         )}
         {events.map((e, i) => (
           <div key={i} className="slide-in-up">
-            <EventLine event={e} />
+            <RunEventLine event={e} />
           </div>
         ))}
-        {status === "done" && lastDone === null && (
+        {status === "done" && (
           <div className="pt-2 text-neutral-500">done</div>
         )}
         {status === "error" && error && (
@@ -85,59 +77,4 @@ export function RunPanel({ mode, title, accent }: { mode: RunMode; title: string
       </div>
     </div>
   );
-}
-
-function EventLine({ event }: { event: RunEvent }) {
-  switch (event.kind) {
-    case "model_message":
-      return (
-        <div>
-          <span className="text-neutral-500">[model] </span>
-          <span className="whitespace-pre-wrap text-neutral-200">{event.content}</span>
-        </div>
-      );
-    case "tool_call":
-      return (
-        <div>
-          <span className="text-emerald-400">[tool→] </span>
-          <span className="text-neutral-200">
-            {event.name}({JSON.stringify(event.arguments)})
-          </span>
-        </div>
-      );
-    case "tool_result":
-      return (
-        <div>
-          <span className="text-cyan-400">[tool←] </span>
-          <span className="text-neutral-300">
-            {event.name} → {truncate(event.result, 240)}
-          </span>
-        </div>
-      );
-    case "tool_error":
-      return (
-        <div>
-          <span className="text-rose-400">[tool!] </span>
-          <span className="text-rose-300">
-            {event.name} threw: {event.message}
-          </span>
-        </div>
-      );
-    case "final":
-      return (
-        <div>
-          <span className="text-emerald-300">[final] </span>
-          <span className="text-neutral-100">{event.content ?? "(no text)"}</span>
-        </div>
-      );
-    case "rounds_exceeded":
-      return <div className="text-rose-400">[exit] rounds exceeded</div>;
-    case "done":
-      return null; // intercepted by the hook before reaching the events list
-  }
-}
-
-function truncate(s: string, max: number): string {
-  if (s.length <= max) return s;
-  return s.slice(0, max) + "…";
 }
