@@ -124,14 +124,14 @@ pnpm install
 forge install --root contracts
 ```
 
-`forge install` pulls OpenZeppelin and forge-std submodules into `contracts/lib/`. Takes ~10 seconds.
+`forge install` pulls OpenZeppelin and forge-std submodules into `packages/contracts/lib/`. Takes ~10 seconds.
 
 ---
 
 ## Tier 1 — Contract tests (~30 seconds)
 
 ```sh
-forge test --root contracts -vv
+forge test --root packages/contracts -vv
 ```
 
 Expected last line:
@@ -162,12 +162,12 @@ Leave it running. It prints 10 pre-funded accounts. We use:
 | User | `0x7099…79C8` | Account #1, you import this into MetaMask |
 | Agent | `0x3C44…93BC` | Account #2, the server-side agent wallet |
 
-All three keys are pinned in `shared/src/addresses.ts:ANVIL_PRIVATE_KEYS`.
+All three keys are pinned in `packages/contracts/src/addresses.ts:ANVIL_PRIVATE_KEYS`.
 
 ### Tab 2 — deploy contracts
 
 ```sh
-forge script contracts/script/Deploy.s.sol --root contracts \
+forge script packages/contracts/script/Deploy.s.sol --root packages/contracts \
   --rpc-url http://127.0.0.1:8545 \
   --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
   --broadcast
@@ -180,7 +180,7 @@ MockUSDC:    0x5FbDB2315678afecb367f032d93F642f64180aa3
 PolicyVault: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 ```
 
-These are deterministic on anvil and already pinned in `shared/src/addresses.ts:ADDRESSES[31337]`. The web finds the contracts automatically — no manual copy required.
+These are deterministic on anvil and already pinned in `packages/contracts/src/addresses.ts:ADDRESSES[31337]`. The web finds the contracts automatically — no manual copy required.
 
 ### Tab 3 — web env file + dev server
 
@@ -206,7 +206,7 @@ The `PRIVATE_KEY` here is the agent wallet, not the user wallet — it lives onl
 Then start the dev server:
 
 ```sh
-pnpm -F @safespend/web dev
+pnpm -F @safespend/merchant dev
 ```
 
 Open http://localhost:3000.
@@ -274,7 +274,7 @@ The Agent cell should tick to 500.00 USDC within 3 seconds (auto-refresh).
 2. **Set a hard usage cap.** https://platform.openai.com/settings/organization/limits → Usage limit → $5 hard cap. A demo run costs <$0.01; the cap is just insurance against runaway loops.
 3. In Tab 3, stop the dev server (`Ctrl+C`).
 4. Edit `web/.env.local` and replace `OPENAI_API_KEY=sk-leave-blank-for-tier-2` with your real key.
-5. Restart: `pnpm -F @safespend/web dev`.
+5. Restart: `pnpm -F @safespend/merchant dev`.
 6. Hard-refresh the browser tab (Cmd+Shift+R).
 
 ### Vulnerable lane
@@ -312,7 +312,7 @@ Expected balance changes:
 
 That's the punchline: **the agent fell for the same prompt-injection both times. Only the lane wired through `PolicyVault` is still solvent.**
 
-If the safe agent picks Merchant A instead of C, the LLM was too cautious to fall for the bait. The on-chain rejection path is still proven by the unit tests (`test_TryProposePurchase_EmitsRejectedReason`); for a live demo you can either narrate it that way or strengthen the bait further in `agent/src/listings.json` (drop the price, add urgency).
+If the safe agent picks Merchant A instead of C, the LLM was too cautious to fall for the bait. The on-chain rejection path is still proven by the unit tests (`test_TryProposePurchase_EmitsRejectedReason`); for a live demo you can either narrate it that way or strengthen the bait further in `packages/agent-core/src/listings.json` (drop the price, add urgency).
 
 ---
 
@@ -330,8 +330,8 @@ If the safe agent picks Merchant A instead of C, the LLM was too cautious to fal
 | Vulnerable run shows `status: reverted` with "transfer reverted" | Agent wallet has 0 MockUSDC | Run the `cast send` mint to `0x3C44…93BC` |
 | Web shows `policy v0` and `remaining: 0.00 / 0.00` after connecting | Policy not set yet | Click "Set policy" and confirm in MetaMask |
 | `pnpm anvil` errors about port in use | Another anvil already running | `pkill anvil` then retry |
-| `.env.local` change doesn't take effect | Next.js loads env at boot, not on file change | Stop and restart `pnpm -F @safespend/web dev`, then hard-refresh the browser |
-| `forge install` complains about uncommitted changes | Pre-existing modifications in `contracts/lib/` | `cd contracts && git submodule update --init --recursive` |
+| `.env.local` change doesn't take effect | Next.js loads env at boot, not on file change | Stop and restart `pnpm -F @safespend/merchant dev`, then hard-refresh the browser |
+| `forge install` complains about uncommitted changes | Pre-existing modifications in `packages/contracts/lib/` | `cd packages/contracts && git submodule update --init --recursive` |
 
 ---
 

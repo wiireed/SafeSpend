@@ -104,20 +104,20 @@ The merchant address is not in `policy.allowedMerchants[]`. The most common reje
 `spent[user] + amount > deposited[user]`. The policy permits the spend but the vault doesn't hold enough USDC for this user.
 
 **`unauthorized_agent`**
-`msg.sender != policy.authorizedAgent`. **Always reverts.** Reserved as a string in `shared/src/types.ts:30` even though no `PurchaseRejected` event ever uses it in v1.
+`msg.sender != policy.authorizedAgent`. **Always reverts.** Reserved as a string in `packages/sdk/src/types.ts:30` even though no `PurchaseRejected` event ever uses it in v1.
 
 ---
 
 ## Operational
 
 **ENS** *(Ethereum Name Service)*
-Off-chain DNS-style naming. Resolves `merchant-a.safespend.eth` to an address. Resolution always happens on Ethereum mainnet, even when the spend is on Fuji or Anvil — the address is mainnet-canonical and the same on every EVM chain. Resolution is in [`agent/src/ens.ts`](../../agent/src/ens.ts) and [`web/lib/ens.ts`](../../web/lib/ens.ts).
+Off-chain DNS-style naming. Resolves `merchant-a.safespend.eth` to an address. Resolution always happens on Ethereum mainnet, even when the spend is on Fuji or Anvil — the address is mainnet-canonical and the same on every EVM chain. Resolution is in [`packages/sdk/src/ens.ts`](../../packages/sdk/src/ens.ts) and [`apps/merchant/lib/ens.ts`](../../apps/merchant/lib/ens.ts).
 
 **Listing**
 A merchant offering: `{ id, merchant, amount, title }`. Surfaced to the LLM by the `searchListings` tool. The listing's `id` and `amount` are the inputs to the listing hash.
 
 **Listing hash**
-`keccak256(abi.encode(merchant, amount, listingId))`. Computed off-chain in [`agent/src/chain.ts:44`](../../agent/src/chain.ts) and emitted in `PurchaseApproved` and `PurchaseRejected`. Opaque to the contract; provides a tamper-evident audit link from event to listing.
+`keccak256(abi.encode(merchant, amount, listingId))`. Computed off-chain in [`packages/sdk/src/chain.ts:44`](../../packages/sdk/src/chain.ts) and emitted in `PurchaseApproved` and `PurchaseRejected`. Opaque to the contract; provides a tamper-evident audit link from event to listing.
 
 **Reason string**
 The plaintext label for a rejection (e.g. `"merchant_not_allowed"`). What the LLM transcript and the demo UI show. Hashed to produce the indexed `reasonCode` topic.

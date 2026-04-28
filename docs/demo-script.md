@@ -38,7 +38,7 @@ Sequential clicks ⇒ both events land cleanly:
 
 ## Slide 2 — The problem (45 seconds)
 
-> **Visual**: screenshot of an injected listing description from `agent/src/listings.json` (the bait listing).
+> **Visual**: screenshot of an injected listing description from `packages/agent-core/src/listings.json` (the bait listing).
 > **Three bullets**:
 > - Agents transact autonomously
 > - Agents get prompt-injected by the content they read

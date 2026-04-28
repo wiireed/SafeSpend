@@ -8,7 +8,7 @@ That's the whole idea. Everything else in this doc explains how that idea is enc
 
 ## The two contracts
 
-### `PolicyVault` ([`contracts/src/PolicyVault.sol`](../../contracts/src/PolicyVault.sol))
+### `PolicyVault` ([`packages/contracts/src/PolicyVault.sol`](../../packages/contracts/src/PolicyVault.sol))
 
 The policy engine. One vault per deployment, many users, one policy per user. It:
 
@@ -20,7 +20,7 @@ The policy engine. One vault per deployment, many users, one policy per user. It
 
 The vault is **immutable** in the sense that there is no admin, no owner, no upgrade proxy, no pause switch. The only privileged action a user can take on their own state is `setPolicy` (replace your own policy) and `withdraw` (pull back your own unspent deposit).
 
-### `MockUSDC` ([`contracts/src/MockUSDC.sol`](../../contracts/src/MockUSDC.sol))
+### `MockUSDC` ([`packages/contracts/src/MockUSDC.sol`](../../packages/contracts/src/MockUSDC.sol))
 
 A 6-decimal OpenZeppelin ERC-20 with a public `mint(to, amount)`. **Hackathon-only.** On a real deployment you would point the vault at the real USDC address (Circle's). The vault's `usdc` field is `immutable` and set in the constructor — there is no token-swap path.
 
@@ -85,7 +85,7 @@ The off-chain layer **adds convenience** — ENS resolution, listing IDs, JSON e
 
 Here is the lifecycle of a single safe-mode purchase, bottom-up. Call this the "happy path"; the rejected paths are the same right up to `_validate` returning a non-`Ok` value.
 
-### 1. The user sets a policy ([`PolicyVault.sol:97`](../../contracts/src/PolicyVault.sol))
+### 1. The user sets a policy ([`PolicyVault.sol:97`](../../packages/contracts/src/PolicyVault.sol))
 
 ```solidity
 function setPolicy(PolicyInput calldata input) external {
@@ -113,7 +113,7 @@ The previous allowlist is `delete`d, then refilled from the input. Replacing a p
 
 The user's `spent` counter is **deliberately not reset** on policy replacement. Test 2 (`test_SetPolicy_FullyReplacesPrior_DoesNotResetSpent`) pins this. The reason is that an attacker who somehow induced a policy reset cannot wipe the spend history; the `maxTotal` for the new policy is enforced against the existing `spent[user]`.
 
-### 2. The user deposits ([`PolicyVault.sol:143`](../../contracts/src/PolicyVault.sol))
+### 2. The user deposits ([`PolicyVault.sol:143`](../../packages/contracts/src/PolicyVault.sol))
 
 ```solidity
 function deposit(uint256 amount) external {
@@ -138,7 +138,7 @@ You cannot deposit into a vault slot that has no policy. This avoids accidentall
 
 Both functions follow CEI: storage update first (`deposited[user] += amount`), then the external token transfer. `safeTransferFrom` reverts on any failure, so the storage update is atomic with the transfer.
 
-### 3. The agent proposes ([`PolicyVault.sol:190`](../../contracts/src/PolicyVault.sol))
+### 3. The agent proposes ([`PolicyVault.sol:190`](../../packages/contracts/src/PolicyVault.sol))
 
 ```solidity
 function tryProposePurchase(
@@ -177,7 +177,7 @@ Note the asymmetry:
 
 The strict variant `proposePurchase` reverts on every failure, including the soft ones. The agent and the demo only use `tryProposePurchase`; `proposePurchase` is there for callers (test scripts, future integrations) that want failure to bubble up.
 
-### 4. The vault validates ([`PolicyVault.sol:219`](../../contracts/src/PolicyVault.sol))
+### 4. The vault validates ([`PolicyVault.sol:219`](../../packages/contracts/src/PolicyVault.sol))
 
 ```solidity
 function _validate(
@@ -199,7 +199,7 @@ Five checks, in a fixed order. The order matters only for the rejection event �
 
 For full-detail enforcement see [`guardrails.md`](./guardrails.md).
 
-### 5. The vault executes ([`PolicyVault.sol:233`](../../contracts/src/PolicyVault.sol))
+### 5. The vault executes ([`PolicyVault.sol:233`](../../packages/contracts/src/PolicyVault.sol))
 
 ```solidity
 function _execute(
@@ -222,7 +222,7 @@ CEI again: `spent[user]` is incremented before the external call. Even though `s
 
 ## What `listingHash` is for
 
-The listing hash is a 32-byte commitment computed off-chain ([`agent/src/chain.ts:44`](../../agent/src/chain.ts)):
+The listing hash is a 32-byte commitment computed off-chain ([`packages/sdk/src/chain.ts:44`](../../packages/sdk/src/chain.ts)):
 
 ```ts
 keccak256(abi.encode(address merchant, uint256 amount, string listingId))
@@ -239,7 +239,7 @@ The hash is **not a replay defence**. It does not prevent the agent from buying 
 
 Two deliberate design decisions about what does *not* live in the contract:
 
-1. **The merchant allowlist stores addresses, not ENS names.** ENS resolution is mainnet-only and slow, so doing it on-chain on Fuji would be impractical. Off-chain code in [`agent/src/ens.ts`](../../agent/src/ens.ts) resolves the name to an address before the vault sees it, and the human-readable name is preserved only in the agent transcript. The on-chain check is `merchant in allowedMerchants[]`, byte-for-byte address equality.
+1. **The merchant allowlist stores addresses, not ENS names.** ENS resolution is mainnet-only and slow, so doing it on-chain on Fuji would be impractical. Off-chain code in [`packages/sdk/src/ens.ts`](../../packages/sdk/src/ens.ts) resolves the name to an address before the vault sees it, and the human-readable name is preserved only in the agent transcript. The on-chain check is `merchant in allowedMerchants[]`, byte-for-byte address equality.
 
 2. **There is no global rate limit, no daily cap, no cool-down.** The policy is a static envelope: per-tx, total, expiry. Within that envelope, the agent can call as fast as it likes. We chose this because the demo runs in a single browser session in <60 seconds and doesn't need rate limiting; a real deployment would layer something on top (a relayer that throttles, a Snap that prompts the user). It would be straightforward to add a `cooldownSeconds` field to the policy struct in v2.
 
@@ -251,13 +251,13 @@ Avalanche Fuji       chainId=43113   USDC=0x6754…68e8  Vault=0x15b2…34Ba  (S
 Mainnet              never (hackathon prototype)
 ```
 
-`shared/src/addresses.ts` is the source of truth for both. `pnpm fuji:deploy` runs the Foundry deploy script and rewrites the Fuji entry in that file in place.
+`packages/contracts/src/addresses.ts` is the source of truth for both. `pnpm fuji:deploy` runs the Foundry deploy script and rewrites the Fuji entry in that file in place.
 
 ## Reading order from here
 
 If you came in cold:
 
-1. Skim [`PolicyVault.sol`](../../contracts/src/PolicyVault.sol) end-to-end (10 minutes — it's 272 lines).
+1. Skim [`PolicyVault.sol`](../../packages/contracts/src/PolicyVault.sol) end-to-end (10 minutes — it's 272 lines).
 2. Read [`guardrails.md`](./guardrails.md) for the rejection matrix and threat model.
-3. Read [`PolicyVault.t.sol`](../../contracts/test/PolicyVault.t.sol) and watch the tests pass with `pnpm contracts:test` (about 1 second).
+3. Read [`PolicyVault.t.sol`](../../packages/contracts/test/PolicyVault.t.sol) and watch the tests pass with `pnpm contracts:test` (about 1 second).
 4. If anything in the prose was confusing, [`glossary.md`](./glossary.md) has plain-English definitions of every term.

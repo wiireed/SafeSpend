@@ -6,7 +6,7 @@ If you only want a one-screen reference, see [`glossary.md`](./glossary.md). If 
 
 ## What is "the policy"
 
-A `Policy` is a per-user record stored on the `PolicyVault` contract. There is exactly one slot per user, keyed by `msg.sender` to `setPolicy`. The struct ([`PolicyVault.sol:20–27`](../../contracts/src/PolicyVault.sol)):
+A `Policy` is a per-user record stored on the `PolicyVault` contract. There is exactly one slot per user, keyed by `msg.sender` to `setPolicy`. The struct ([`PolicyVault.sol:20–27`](../../packages/contracts/src/PolicyVault.sol)):
 
 ```solidity
 struct Policy {
@@ -53,7 +53,7 @@ The cumulative cap across **every spend, ever, across every policy version** for
 if (spent[user] + amount > p.maxTotal) return Reason.ExceedsTotal;     // PolicyVault.sol:228
 ```
 
-The subtle thing: `spent[user]` is **not** reset when you call `setPolicy` again. So if you've already spent 200 USDC under v1 and you replace the policy with v2 that has `maxTotal = 300`, you have 100 left to spend, not 300. This is by design — see [test 2](../../contracts/test/PolicyVault.t.sol). The reason is auditability: an attacker who somehow induced a policy reset cannot wipe spend history.
+The subtle thing: `spent[user]` is **not** reset when you call `setPolicy` again. So if you've already spent 200 USDC under v1 and you replace the policy with v2 that has `maxTotal = 300`, you have 100 left to spend, not 300. This is by design — see [test 2](../../packages/contracts/test/PolicyVault.t.sol). The reason is auditability: an attacker who somehow induced a policy reset cannot wipe spend history.
 
 If you want to "reset" the budget, the clean way is to **withdraw and start over with a new vault deposit on a new policy**. (Practically: replace the policy with a higher `maxTotal` if you trust yourself.)
 
@@ -69,11 +69,11 @@ if (block.timestamp > p.expiresAt) return Reason.PolicyExpired;    // PolicyVaul
 
 A few notes:
 
-- **Withdraws are still allowed past expiry.** [Test 21](../../contracts/test/PolicyVault.t.sol) pins this. You don't get locked out of your own funds because your policy timer ran out.
+- **Withdraws are still allowed past expiry.** [Test 21](../../packages/contracts/test/PolicyVault.t.sol) pins this. You don't get locked out of your own funds because your policy timer ran out.
 - **There is no minimum or maximum.** You can set it to ten seconds from now, or ten years. The contract doesn't second-guess.
 - **`block.timestamp` is per-block, not per-second precision.** On Fuji that's ~2 second resolution; on Anvil with `--block-time 0`, it's whatever you `vm.warp` to.
 
-The demo UI takes a number-of-hours input and computes `expiresAt = floor(now/1000) + hours * 3600` ([`PolicyDialog.tsx:78`](../../web/components/PolicyDialog.tsx)). Default 24 hours.
+The demo UI takes a number-of-hours input and computes `expiresAt = floor(now/1000) + hours * 3600` ([`PolicyDialog.tsx:78`](../../apps/merchant/components/PolicyDialog.tsx)). Default 24 hours.
 
 ### `authorizedAgent` — the one EOA
 
@@ -103,15 +103,15 @@ function _isAllowed(address[] storage list, address merchant) internal view retu
 }
 ```
 
-The list stores **addresses**, not ENS names. The vault has no way to resolve `merchant-a.safespend.eth` — that's an off-chain operation against mainnet ENS, performed by [`agent/src/ens.ts`](../../agent/src/ens.ts) (in the agent) or [`web/lib/ens.ts`](../../web/lib/ens.ts) (in the policy dialog) before the address ever reaches the vault.
+The list stores **addresses**, not ENS names. The vault has no way to resolve `merchant-a.safespend.eth` — that's an off-chain operation against mainnet ENS, performed by [`packages/sdk/src/ens.ts`](../../packages/sdk/src/ens.ts) (in the agent) or [`apps/merchant/lib/ens.ts`](../../apps/merchant/lib/ens.ts) (in the policy dialog) before the address ever reaches the vault.
 
-The cap of 20 is from `MAX_ALLOWLIST` ([`PolicyVault.sol:16`](../../contracts/src/PolicyVault.sol)). It exists because `_isAllowed` is a linear scan — without a cap, a misconfigured policy with 10 000 merchants would burn gas on every purchase. 20 is plenty for human-curated lists; it forecloses the gas-grief footgun.
+The cap of 20 is from `MAX_ALLOWLIST` ([`PolicyVault.sol:16`](../../packages/contracts/src/PolicyVault.sol)). It exists because `_isAllowed` is a linear scan — without a cap, a misconfigured policy with 10 000 merchants would burn gas on every purchase. 20 is plenty for human-curated lists; it forecloses the gas-grief footgun.
 
-[Test 3](../../contracts/test/PolicyVault.t.sol) pins the boundary: 21 entries reverts with `AllowlistTooLong`.
+[Test 3](../../packages/contracts/test/PolicyVault.t.sol) pins the boundary: 21 entries reverts with `AllowlistTooLong`.
 
 ## What `setPolicy` actually does, line by line
 
-Full source ([`PolicyVault.sol:97–120`](../../contracts/src/PolicyVault.sol)):
+Full source ([`PolicyVault.sol:97–120`](../../packages/contracts/src/PolicyVault.sol)):
 
 ```solidity
 function setPolicy(PolicyInput calldata input) external {
@@ -151,7 +151,7 @@ Walk-through:
 
 What `setPolicy` **does not** touch:
 
-- `spent[user]` — preserved across resets ([test 2](../../contracts/test/PolicyVault.t.sol)).
+- `spent[user]` — preserved across resets ([test 2](../../packages/contracts/test/PolicyVault.t.sol)).
 - `deposited[user]` — preserved across resets.
 - The vault's USDC balance for this user.
 
@@ -161,8 +161,8 @@ In other words, `setPolicy` rotates the **rules**, not the **money**. Your depos
 
 `version` is a `uint64` — astronomical headroom. It serves two purposes:
 
-1. **Sentinel.** `version == 0` means the slot is empty. The vault uses this in `tryProposePurchase` ([line 198](../../contracts/src/PolicyVault.sol)) and `_depositFor` ([line 152](../../contracts/src/PolicyVault.sol)) to detect "no policy has been set."
-2. **Audit anchor.** Every approved purchase emits the version it ran under, **indexed** ([line 242](../../contracts/src/PolicyVault.sol)). [Test 22](../../contracts/test/PolicyVault.t.sol) pins this.
+1. **Sentinel.** `version == 0` means the slot is empty. The vault uses this in `tryProposePurchase` ([line 198](../../packages/contracts/src/PolicyVault.sol)) and `_depositFor` ([line 152](../../packages/contracts/src/PolicyVault.sol)) to detect "no policy has been set."
+2. **Audit anchor.** Every approved purchase emits the version it ran under, **indexed** ([line 242](../../packages/contracts/src/PolicyVault.sol)). [Test 22](../../packages/contracts/test/PolicyVault.t.sol) pins this.
 
 So if your policy history is
 
@@ -191,7 +191,7 @@ Each of these bumps the version and emits `PolicySet`. The version monotonicity 
 
 ## What the demo UI does on your behalf
 
-The web app's `PolicyDialog` ([`web/components/PolicyDialog.tsx`](../../web/components/PolicyDialog.tsx)) is the human-friendly wrapper around `setPolicy`. Its job is to:
+The web app's `PolicyDialog` ([`apps/merchant/components/PolicyDialog.tsx`](../../apps/merchant/components/PolicyDialog.tsx)) is the human-friendly wrapper around `setPolicy`. Its job is to:
 
 ### 1. Take inputs in human units
 
@@ -205,11 +205,11 @@ The form fields are:
 | Authorized agent | `0x3C44Cd…3BC` (string) | `0x3C44Cd…3BC` (`Hex`) |
 | Allowed merchants | One per line, mix of addresses and `.eth` names | `Hex[]` after ENS resolution |
 
-The unit conversion happens in [`PolicyDialog.tsx:92–98`](../../web/components/PolicyDialog.tsx) via the `parseUsdc` helper.
+The unit conversion happens in [`PolicyDialog.tsx:92–98`](../../apps/merchant/components/PolicyDialog.tsx) via the `parseUsdc` helper.
 
 ### 2. Resolve ENS names before submission
 
-Each line of the merchants textarea is checked. If it's a hex address, kept as-is. If it contains a `.`, it's treated as an ENS name and resolved against mainnet ([`PolicyDialog.tsx:36–70`](../../web/components/PolicyDialog.tsx)). The submit button stays disabled until **every** merchant line resolves successfully (`allMerchantsOk`).
+Each line of the merchants textarea is checked. If it's a hex address, kept as-is. If it contains a `.`, it's treated as an ENS name and resolved against mainnet ([`PolicyDialog.tsx:36–70`](../../apps/merchant/components/PolicyDialog.tsx)). The submit button stays disabled until **every** merchant line resolves successfully (`allMerchantsOk`).
 
 The resolution status is shown inline:
 
@@ -223,7 +223,7 @@ This is purely UX. The contract sees only the resolved addresses; the human-read
 
 ### 3. Submit the wallet transaction
 
-Once `allMerchantsOk`, hitting "Set policy" triggers a `writeContract` with viem ([`PolicyDialog.tsx:87–101`](../../web/components/PolicyDialog.tsx)). MetaMask prompts the user; the user signs from their depositor key. The vault's `setPolicy` records the new policy under that signer's address.
+Once `allMerchantsOk`, hitting "Set policy" triggers a `writeContract` with viem ([`PolicyDialog.tsx:87–101`](../../apps/merchant/components/PolicyDialog.tsx)). MetaMask prompts the user; the user signs from their depositor key. The vault's `setPolicy` records the new policy under that signer's address.
 
 ### 4. Show transaction state
 
@@ -296,5 +296,5 @@ A `setPolicy` with two merchants on Fuji is ~120 k gas; with twenty merchants it
 
 - [`onboarding.md`](./onboarding.md) — the four-step user flow that wraps `setPolicy` for first-time users
 - [`guardrails.md`](./guardrails.md) — what the policy enforces, line by line
-- [`PolicyDialog.tsx`](../../web/components/PolicyDialog.tsx) — the UI source
-- [`PolicyVault.sol:97–120`](../../contracts/src/PolicyVault.sol) — the function source
+- [`PolicyDialog.tsx`](../../apps/merchant/components/PolicyDialog.tsx) — the UI source
+- [`PolicyVault.sol:97–120`](../../packages/contracts/src/PolicyVault.sol) — the function source

@@ -23,13 +23,13 @@ pnpm fuji:deploy
 What it does:
 - Runs `forge script Deploy.s.sol --broadcast` against Fuji.
 - Parses the deployed `MockUSDC` and `PolicyVault` addresses out of the broadcast artifact.
-- Rewrites the `43113` entry in `shared/src/addresses.ts`.
+- Rewrites the `43113` entry in `packages/contracts/src/addresses.ts`.
 - Prints the explorer URLs for both contracts.
 
 ### 2. Set the policy (web UI)
 
 ```sh
-pnpm -F @safespend/web dev
+pnpm -F @safespend/merchant dev
 ```
 
 In the browser:
@@ -60,14 +60,14 @@ You now have:
 
 ### 5. (Optional) Same-user approved + rejected on the same policy version
 
-Run the **safe** agent with one merchant from the allowlist (Merchant A, clean listing) — that gives you a `PurchaseApproved` event. Run it again pointing at Merchant C (you can edit `agent/src/listings.json` if needed) — `PurchaseRejected` with `merchant_not_allowed`. Both events share the same `policyVersion`, which is what G3 wants you to demonstrate.
+Run the **safe** agent with one merchant from the allowlist (Merchant A, clean listing) — that gives you a `PurchaseApproved` event. Run it again pointing at Merchant C (you can edit `packages/agent-core/src/listings.json` if needed) — `PurchaseRejected` with `merchant_not_allowed`. Both events share the same `policyVersion`, which is what G3 wants you to demonstrate.
 
 ## Troubleshooting
 
 - **`DEPLOYER_PRIVATE_KEY is not set`**: export it in the same shell as `pnpm fuji:deploy`.
 - **`InsufficientFunds`**: the deployer EOA needs more testnet AVAX. Faucet again.
 - **Forge can't find the broadcast artifact**: re-run `pnpm fuji:deploy` — the previous run may have errored before broadcasting. Check the script's stderr.
-- **Web shows the wrong chain**: switch MetaMask to Fuji. The TopBar reads `chainId` from the connected wallet; addresses are pulled from `shared/addresses.ts` accordingly.
+- **Web shows the wrong chain**: switch MetaMask to Fuji. The TopBar reads `chainId` from the connected wallet; addresses are pulled from `packages/contracts/src/addresses.ts` accordingly.
 - **`/api/run` fails with `Missing required env var: PRIVATE_KEY`**: the web's `.env.local` needs the agent EOA's private key (server-side only) and `OPENAI_API_KEY`. See `.env.example`.
 - **`forge install` issues**: only matters for first-time setup; not part of the deploy flow.
 

@@ -2,6 +2,8 @@
 
 Status: review draft for team implementation.
 
+> **Historical doc.** This is the 24-hour build plan from the hackathon submission, kept for reference. It describes the original `contracts/`, `agent/`, `web/`, `shared/` directory layout. The current repo layout is the 4-package component split — see [`docs/components.md`](components.md) and the top-level [README](../README.md). The hackathon snapshot itself lives at [`v0.1.0-hackathon`](https://github.com/wiireed/SafeSpend/releases/tag/v0.1.0-hackathon) / [`hackathon` branch](https://github.com/wiireed/SafeSpend/tree/hackathon).
+
 ## Context
 
 SafeSpend is a programmable wallet safety layer for AI agents. A user submits a spending policy on-chain once through a direct `setPolicy` transaction: max per transaction, max total, allowed merchants, expiry, token, and authorized agent. No EIP-712 signatures, no off-chain policy verification, and no account abstraction for v1.
@@ -272,7 +274,7 @@ Target tests:
 
 Agent implementation:
 
-- Provider-agnostic LLM adapter at `agent/src/llm/` exposing a single `Llm.chat({ messages, tools, timeoutMs })` interface. `LLM_PROVIDER` env var (`openai` default, `anthropic` optional) selects the implementation.
+- Provider-agnostic LLM adapter at `packages/agent-core/src/llm/` exposing a single `Llm.chat({ messages, tools, timeoutMs })` interface. `LLM_PROVIDER` env var (`openai` default, `anthropic` optional) selects the implementation.
 - Default model: OpenAI `gpt-5.5-codex` via the official `openai` SDK; configurable through `OPENAI_MODEL` (and `ANTHROPIC_MODEL` for the fallback path), with hackathon defaults set in `.env.example`.
 - Plain TypeScript, no LangChain.
 - Two modes: `--safe` and `--vulnerable`.
@@ -379,17 +381,17 @@ Same agent, same listings, same prompt. The only variable is whether the wallet 
 
 ## Critical Files
 
-- `contracts/src/PolicyVault.sol`: policy checks and vault transfers.
-- `contracts/src/MockUSDC.sol`: demo token.
-- `contracts/test/PolicyVault.t.sol`: contract safety net.
-- `agent/src/agent.ts`: model loop and tool-use orchestration.
-- `agent/src/tools/proposePurchase.ts`: safe/vulnerable branch point.
-- `agent/src/chain.ts`: viem clients and chain config.
-- `web/app/page.tsx`: split-screen demo.
-- `web/app/api/run/route.ts`: server-side agent runner.
-- `web/lib/policy.ts`: wallet policy transactions.
-- `shared/addresses.ts`: generated deployed addresses.
-- `shared/explorer.ts`: explorer link helper.
+- `packages/contracts/src/PolicyVault.sol`: policy checks and vault transfers.
+- `packages/contracts/src/MockUSDC.sol`: demo token.
+- `packages/contracts/test/PolicyVault.t.sol`: contract safety net.
+- `packages/agent-core/src/loop.ts`: model loop and tool-use orchestration.
+- `packages/agent-core/src/tools/proposePurchase.ts`: safe/vulnerable branch point.
+- `packages/sdk/src/chain.ts`: viem clients and chain config.
+- `apps/merchant/app/page.tsx`: split-screen demo.
+- `apps/merchant/app/api/run/route.ts`: server-side agent runner.
+- `apps/merchant/lib/policy.ts`: wallet policy transactions.
+- `packages/contracts/src/addresses.ts`: generated deployed addresses.
+- `packages/sdk/src/explorer.ts`: explorer link helper.
 
 ## Environment
 
@@ -425,8 +427,8 @@ forge test -vvv
 Agent layer:
 
 ```sh
-pnpm tsx agent/src/index.ts --vulnerable
-pnpm tsx agent/src/index.ts --safe
+pnpm tsx apps/agent/src/index.ts --vulnerable
+pnpm tsx apps/agent/src/index.ts --safe
 ```
 
 Expected outcomes:
@@ -435,7 +437,7 @@ Expected outcomes:
 - Safe injected run emits `PurchaseRejected` with `merchant_not_allowed`.
 - Clean safe run emits `PurchaseApproved`.
 - Balances match the event outcomes.
-- Explorer links are generated only through `shared/explorer.ts`.
+- Explorer links are generated only through `packages/sdk/src/explorer.ts`.
 
 ## Risks And Mitigations
 

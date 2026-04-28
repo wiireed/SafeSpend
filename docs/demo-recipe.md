@@ -8,7 +8,7 @@ on the live deployment. No clone or install required.
 - A browser with **MetaMask** installed (Chrome, Firefox, Brave, Edge).
 - About 0.05 testnet AVAX in any address you control on Avalanche Fuji
   (free from the [Core faucet](https://core.app/tools/testnet-faucet/?subnet=c&token=c) — needs an existing AVAX balance on mainnet C-chain or a coupon code).
-  - Alternative: re-use one of the [well-known Anvil keys](https://github.com/wiireed/SafeSpend/blob/main/shared/src/addresses.ts) by importing the private key into MetaMask. The 'user' key (account #1) is `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d` and is the one this deployment is policy-set against. Only do this for the demo; never use Anvil keys for anything you care about.
+  - Alternative: re-use one of the [well-known Anvil keys](https://github.com/wiireed/SafeSpend/blob/main/packages/contracts/src/addresses.ts) by importing the private key into MetaMask. The 'user' key (account #1) is `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d` and is the one this deployment is policy-set against. Only do this for the demo; never use Anvil keys for anything you care about.
 
 ## The 5-minute walkthrough
 
